@@ -1,24 +1,22 @@
 # ============================================================
-#  NEXUS — Intelligence Platform  |  app.py  (v5.0 ULTIMATE)
+#  NEXUS — Intelligence Platform  |  app.py  (v5.1)
 #  Themes  : Nova Crystal · Arctic Frost · Crimson Noir
-#  Stack   : Streamlit · Google Gemini API · youtube-transcript-api
+#  Stack   : Streamlit · Neural Engine · youtube-transcript-api
 #
 #  requirements.txt:
 #    streamlit>=1.31
-#    google-generativeai>=0.5
+#    groq
 #    youtube-transcript-api
 #    python-docx
 #    streamlit-mic-recorder
 #    Pillow
+#    pdfplumber
 # ============================================================
 
 import streamlit as st
-import re, os, tempfile, time, json
+import re, os, tempfile, time, json, base64, io
 from datetime import datetime
 
-# ─────────────────────────────────────────────
-#  PAGE CONFIG  (must be first Streamlit call)
-# ─────────────────────────────────────────────
 st.set_page_config(
     page_title="NEXUS — Intelligence Platform",
     page_icon="◈",
@@ -279,38 +277,41 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
 # ═══════════════════════════════════════════════════════
 PERSONAS = {
     "NEXUS Default": (
-        "You are NEXUS — an advanced AI intelligence platform. "
-        "You provide helpful, precise, and context-aware responses. "
+        "You are NEXUS — a sharp, thoughtful AI assistant. "
+        "You're not robotic or overly formal. Talk like a knowledgeable friend who knows a lot. "
+        "Be direct, clear, sometimes a little witty, but always genuinely helpful. "
+        "Give real answers, not fluffy ones. Use Markdown when it helps readability. "
         "Respond in the same language the user writes in. "
-        "Use Markdown formatting when appropriate."
+        "Never mention which AI model or company powers you."
     ),
     "Coding Expert": (
-        "You are NEXUS in Coding Expert mode. "
-        "You are a senior software engineer with deep expertise in Python, JavaScript, web development, databases, and DevOps. "
+        "You are NEXUS in Coding Expert mode — a senior software engineer. "
+        "Deep expertise in Python, JavaScript, web development, databases, and DevOps. "
         "Always provide clean, production-ready code with comments. "
-        "Point out bugs and edge cases proactively. "
-        "Use Markdown code blocks with language tags for all code snippets."
+        "Proactively point out bugs and edge cases. "
+        "Use Markdown code blocks with language tags for all code. "
+        "Never mention which AI model or company powers you."
     ),
     "Data Analyst": (
         "You are NEXUS in Data Analyst mode. "
-        "You specialize in data analysis, statistics, business intelligence, and visualization. "
-        "Provide structured, numbered insights. "
-        "Use tables in Markdown where applicable. "
-        "Always quantify findings and suggest data-driven next steps."
+        "Specialize in data analysis, statistics, business intelligence, and visualization. "
+        "Provide structured, numbered insights. Use tables in Markdown where applicable. "
+        "Always quantify findings and suggest data-driven next steps. "
+        "Never mention which AI model or company powers you."
     ),
     "Teacher / ELI5": (
         "You are NEXUS in Teacher mode. "
-        "Explain everything as simply as possible — like you're teaching a curious 12-year-old. "
+        "Explain everything as simply as possible — like teaching a curious 12-year-old. "
         "Use analogies, real-world examples, and step-by-step breakdowns. "
-        "Avoid jargon unless you immediately explain it. "
-        "Make learning enjoyable and engaging."
+        "Avoid jargon unless you immediately explain it. Make learning enjoyable. "
+        "Never mention which AI model or company powers you."
     ),
     "Creative Writer": (
-        "You are NEXUS in Creative Writer mode. "
-        "You are a skilled creative writer — storytelling, copywriting, poetry, scripts. "
+        "You are NEXUS in Creative Writer mode — a skilled storyteller and copywriter. "
         "Write with vivid language, compelling narrative, and strong voice. "
-        "Adapt tone from dark/serious to light/playful as the user needs. "
-        "Always produce polished, publication-ready creative content."
+        "Adapt tone from dark/serious to light/playful as needed. "
+        "Always produce polished, publication-ready creative content. "
+        "Never mention which AI model or company powers you."
     ),
 }
 
@@ -327,15 +328,8 @@ PROMPT_TEMPLATES = [
 ]
 
 # ═══════════════════════════════════════════════════════
-#  INPUT VALIDATION — Security & Safety Filter
+#  SAFETY FILTER
 # ═══════════════════════════════════════════════════════
-GEMINI_SAFETY_SETTINGS = [
-    {"category": "HARM_CATEGORY_HARASSMENT",        "threshold": "BLOCK_LOW_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_HATE_SPEECH",       "threshold": "BLOCK_LOW_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_LOW_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_LOW_AND_ABOVE"},
-]
-
 _BLACKLIST: dict = {
     "terrorism": [
         "terrorist","terrorism","jihad","jihadist","isis","isil","al-qaeda",
@@ -437,15 +431,13 @@ def show_block_error(category: str):
 # ═══════════════════════════════════════════════════════
 #  RATE LIMITER
 # ═══════════════════════════════════════════════════════
-RATE_LIMIT_MAX   = 20   # max queries
-RATE_LIMIT_WINDOW = 60  # per 60 seconds
+RATE_LIMIT_MAX    = 20
+RATE_LIMIT_WINDOW = 60
 
 
 def check_rate_limit() -> bool:
-    """Returns True if allowed, False if rate-limited."""
     now = time.time()
     timestamps = st.session_state.get("rate_timestamps", [])
-    # Keep only timestamps within the window
     timestamps = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
     if len(timestamps) >= RATE_LIMIT_MAX:
         st.session_state.rate_timestamps = timestamps
@@ -455,19 +447,92 @@ def check_rate_limit() -> bool:
     return True
 
 
-# ═══════════════════════════════════════════════════════
-#  HELPER — approximate token count
-# ═══════════════════════════════════════════════════════
 def approx_tokens(text: str) -> int:
     return max(1, int(len(text.split()) * 1.35))
 
 
 # ═══════════════════════════════════════════════════════
-#  HELPER — Extract text from DOCX
+#  NEURAL ENGINE — Groq Backend + Auto Fallback
 # ═══════════════════════════════════════════════════════
+
+# Internal model mapping — not shown in UI
+MODEL_MAP = {
+    "Ultra":    "llama-3.3-70b-versatile",
+    "Balanced": "llama3-70b-8192",        # stable older 70b, not deprecated
+    "Fast":     "llama-3.1-8b-instant",
+}
+
+VISION_MODEL   = "llama-3.2-11b-vision-preview"
+WHISPER_MODEL  = "whisper-large-v3"
+
+FALLBACK_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama3-70b-8192",
+    "llama-3.1-8b-instant",
+    "gemma2-9b-it",          # mixtral removed from Groq, replaced with gemma2
+]
+
+
+def _groq_client(api_key: str):
+    from groq import Groq
+    return Groq(api_key=api_key)
+
+
+def _call_groq(api_key: str, messages: list, model: str, temperature: float, stream: bool = False):
+    client = _groq_client(api_key)
+    return client.chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=2048,
+        stream=stream,
+    )
+
+
+def _call_with_fallback(api_key: str, messages: list, primary_model: str, temperature: float) -> str:
+    """Try primary model, then fallback chain."""
+    models_to_try = [primary_model] + [m for m in FALLBACK_MODELS if m != primary_model]
+    last_error = ""
+    for model in models_to_try:
+        try:
+            resp = _call_groq(api_key, messages, model, temperature)
+            return resp.choices[0].message.content
+        except Exception as e:
+            last_error = str(e)
+            if "invalid_api_key" in last_error.lower() or "authentication" in last_error.lower():
+                return "❌ API Key galat hai. Sahi key daalo sidebar mein."
+            if "rate_limit" in last_error.lower():
+                time.sleep(1)
+                continue
+            continue
+    return f"❌ Abhi kuch dikkat aa rahi hai, thodi der baad try karo. ({last_error[:80]})"
+
+
+# ═══════════════════════════════════════════════════════
+#  HELPERS
+# ═══════════════════════════════════════════════════════
+
+def _extract_pdf_text(file_bytes: bytes) -> str:
+    try:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            pages_text = [page.extract_text() for page in pdf.pages]
+            text = "\n\n".join(t for t in pages_text if t)
+        return text.strip() or "[PDF mein koi readable text nahi mila]"
+    except ImportError:
+        pass
+    try:
+        import PyPDF2
+        reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
+        text = "\n\n".join(p.extract_text() for p in reader.pages if p.extract_text())
+        return text.strip() or "[PDF text extract nahi hua]"
+    except Exception as e:
+        return f"[PDF extract error: {e}]"
+
+
 def _extract_docx_text(file_bytes: bytes) -> str:
     try:
-        import docx, io
+        import docx
         doc = docx.Document(io.BytesIO(file_bytes))
         paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
         for table in doc.tables:
@@ -477,61 +542,58 @@ def _extract_docx_text(file_bytes: bytes) -> str:
                     paragraphs.append(row_text)
         return "\n\n".join(paragraphs)
     except ImportError:
-        return "[ERROR] python-docx not installed. Add 'python-docx' to requirements.txt."
+        return "[ERROR] python-docx not installed."
     except Exception as e:
         return f"[ERROR] Could not read DOCX: {e}"
 
 
 # ═══════════════════════════════════════════════════════
-#  BACKEND — Validate API Key
+#  BACKEND — Validate Key
 # ═══════════════════════════════════════════════════════
 def validate_api_key(api_key: str) -> tuple:
-    """Returns (is_valid: bool, message: str)"""
     if not api_key or len(api_key.strip()) < 20:
         return False, "Key too short or empty."
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        resp = model.generate_content("Say OK")
-        if resp.text:
+        resp = _call_groq(api_key, [{"role": "user", "content": "Say OK"}], "llama-3.1-8b-instant", 0.1)
+        if resp.choices[0].message.content:
             return True, "API Key is valid ✓"
         return False, "Unexpected empty response."
     except Exception as e:
         err = str(e)
-        if "API_KEY_INVALID" in err or "invalid" in err.lower():
-            return False, "Invalid API Key — check Google AI Studio."
-        elif "quota" in err.lower():
-            return True, "Key valid but quota exceeded."
+        if "invalid_api_key" in err.lower() or "authentication" in err.lower():
+            return False, "Invalid API Key."
+        elif "rate_limit" in err.lower():
+            return True, "Key valid but rate limited right now."
         return False, f"Error: {err[:80]}"
 
 
 # ═══════════════════════════════════════════════════════
-#  BACKEND — Analyze Document
+#  BACKEND — Document Analysis
 # ═══════════════════════════════════════════════════════
 def analyze_document(
-    file,
-    api_key: str,
-    temperature: float,
-    model: str,
-    analysis_type: str,
-    opt_hyperlinks: bool,
-    opt_tables: bool,
-    opt_images: bool,
-    opt_pii: bool,
-    opt_quotes: bool,
+    file, api_key: str, temperature: float, model_tier: str, analysis_type: str,
+    opt_hyperlinks: bool, opt_tables: bool, opt_images: bool, opt_pii: bool, opt_quotes: bool,
 ) -> str:
     if not api_key:
-        return "⚠️ API Key missing. Please enter your Gemini API Key in the sidebar."
+        return "⚠️ API Key nahi hai. Sidebar mein key daalo."
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-
         file.seek(0)
         file_bytes = file.read()
         file_name  = file.name.lower()
-        model_obj  = genai.GenerativeModel(model)
-        config     = genai.types.GenerationConfig(temperature=temperature)
+
+        if file_name.endswith(".pdf"):
+            content = _extract_pdf_text(file_bytes)
+        elif file_name.endswith(".docx"):
+            content = _extract_docx_text(file_bytes)
+            if content.startswith("[ERROR]"):
+                return f"❌ {content}"
+        elif file_name.endswith(".csv"):
+            content = file_bytes.decode("utf-8", errors="ignore")
+        else:
+            content = file_bytes.decode("utf-8", errors="ignore")
+
+        if len(content) > 28000:
+            content = content[:28000] + "\n\n[...document truncated at 28,000 chars...]"
 
         mode_instructions = {
             "Full Semantic Analysis": (
@@ -571,7 +633,7 @@ def analyze_document(
             "🔥 Roast My Document": (
                 "You are a brutally honest, witty critic. ROAST this document mercilessly:\n"
                 "1. What's embarrassingly wrong or weak about it\n"
-                "2. The most cringe-worthy parts (with timestamps/locations)\n"
+                "2. The most cringe-worthy parts\n"
                 "3. What a smart 10-year-old would do better\n"
                 "4. A savage one-line summary\n"
                 "5. Three serious improvements (after the roast)\n"
@@ -606,84 +668,37 @@ def analyze_document(
 
         base_prompt = mode_instructions.get(analysis_type, mode_instructions["Full Semantic Analysis"])
 
-        extra = "\nAdditional extraction tasks:\n"
+        extra = "\nAdditional tasks:\n"
         if opt_hyperlinks: extra += "- Extract all hyperlinks found.\n"
         if opt_tables:     extra += "- Parse and reproduce all tables in Markdown.\n"
-        if opt_images:     extra += "- Describe any embedded images or charts.\n"
+        if opt_images:     extra += "- Describe any embedded images or charts if mentioned.\n"
         if opt_pii:        extra += "- Flag and list any PII (names, emails, phone numbers, addresses).\n"
         if opt_quotes:     extra += "- Pull 3-5 notable direct quotes.\n"
 
         prompt = base_prompt + extra + "\nUse Markdown formatting throughout.\n"
+        primary_model = MODEL_MAP.get(model_tier, MODEL_MAP["Ultra"])
 
-        if file_name.endswith(".pdf"):
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                tmp.write(file_bytes)
-                tmp_path = tmp.name
-            try:
-                uploaded = genai.upload_file(tmp_path, mime_type="application/pdf")
-                response = model_obj.generate_content([uploaded, prompt], generation_config=config)
-            finally:
-                os.unlink(tmp_path)
-
-        elif file_name.endswith(".docx"):
-            content = _extract_docx_text(file_bytes)
-            if content.startswith("[ERROR]"):
-                return f"❌ {content}"
-            if len(content) > 30000:
-                content = content[:30000] + "\n\n[...document truncated at 30,000 chars...]"
-            response = model_obj.generate_content(
-                f"{prompt}\n\nDocument Content:\n\n{content}", generation_config=config
-            )
-
-        elif file_name.endswith(".csv"):
-            content = file_bytes.decode("utf-8", errors="ignore")
-            if len(content) > 30000:
-                content = content[:30000] + "\n\n[...CSV truncated...]"
-            response = model_obj.generate_content(
-                f"{prompt}\n\nCSV Data:\n\n{content}", generation_config=config
-            )
-
-        else:
-            content = file_bytes.decode("utf-8", errors="ignore")
-            if len(content) > 30000:
-                content = content[:30000] + "\n\n[...document truncated...]"
-            response = model_obj.generate_content(
-                f"{prompt}\n\nDocument Content:\n\n{content}", generation_config=config
-            )
-
-        return response.text
+        messages = [
+            {"role": "system", "content": PERSONAS.get("NEXUS Default", "")},
+            {"role": "user", "content": f"{prompt}\n\nDocument Content:\n\n{content}"}
+        ]
+        return _call_with_fallback(api_key, messages, primary_model, temperature)
 
     except Exception as e:
-        err = str(e)
-        if "API_KEY_INVALID" in err or "invalid" in err.lower():
-            return "❌ Invalid API Key. Please copy the correct key from Google AI Studio."
-        elif "quota" in err.lower():
-            return "❌ API quota exceeded. Please try again later or check your key."
-        else:
-            return f"❌ Error: {err}"
+        return f"❌ Error: {str(e)[:100]}"
 
 
 # ═══════════════════════════════════════════════════════
-#  BACKEND — Analyze Image (Vision)
+#  BACKEND — Image Vision
 # ═══════════════════════════════════════════════════════
 def analyze_image(
-    image_bytes: bytes,
-    mime_type: str,
-    question: str,
-    api_key: str,
-    temperature: float,
-    model: str,
+    image_bytes: bytes, mime_type: str, question: str,
+    api_key: str, temperature: float, model_tier: str,
 ) -> str:
     if not api_key:
-        return "⚠️ API Key missing. Please enter your Gemini API Key in the sidebar."
+        return "⚠️ API Key nahi hai. Sidebar mein key daalo."
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-
-        model_obj = genai.GenerativeModel(model)
-        config    = genai.types.GenerationConfig(temperature=temperature)
-
-        image_part = {"inline_data": {"mime_type": mime_type, "data": __import__("base64").b64encode(image_bytes).decode()}}
+        image_b64 = base64.b64encode(image_bytes).decode()
         prompt_text = question if question.strip() else (
             "Analyze this image thoroughly:\n"
             "1. What is in the image?\n"
@@ -693,28 +708,40 @@ def analyze_image(
             "Use Markdown formatting."
         )
 
-        response = model_obj.generate_content([image_part, prompt_text], generation_config=config)
-        return response.text
+        client = _groq_client(api_key)
+        response = client.chat.completions.create(
+            model=VISION_MODEL,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt_text},
+                    {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{image_b64}"}}
+                ]
+            }],
+            temperature=temperature,
+            max_tokens=1024,
+        )
+        return response.choices[0].message.content
 
     except Exception as e:
         err = str(e)
-        if "API_KEY_INVALID" in err or "invalid" in err.lower():
-            return "❌ Invalid API Key."
-        elif "quota" in err.lower():
-            return "❌ API quota exceeded."
+        if "invalid_api_key" in err.lower() or "authentication" in err.lower():
+            return "❌ API Key galat hai."
+        elif "rate_limit" in err.lower():
+            return "❌ Rate limit hit hua. Thodi der baad try karo."
         else:
-            return f"❌ Error: {err}"
+            return f"❌ Image analysis error: {err[:100]}"
 
 
 # ═══════════════════════════════════════════════════════
 #  BACKEND — YouTube
 # ═══════════════════════════════════════════════════════
 def analyze_youtube(
-    url: str, api_key: str, temperature: float, model: str,
+    url: str, api_key: str, temperature: float, model_tier: str,
     yt_mode: str, output_format: str,
 ) -> str:
     if not api_key:
-        return "⚠️ API Key missing. Please enter your Gemini API Key in the sidebar."
+        return "⚠️ API Key nahi hai. Sidebar mein key daalo."
     try:
         from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
 
@@ -731,9 +758,9 @@ def analyze_youtube(
                 transcripts = YouTubeTranscriptApi.list_transcripts(video_id)
                 transcript_list = transcripts.find_generated_transcript(["en", "hi"]).fetch()
             except Exception:
-                return "❌ No transcript/subtitles available for this video."
+                return "❌ Is video mein transcript available nahi hai."
         except TranscriptsDisabled:
-            return "❌ Transcripts are disabled for this video."
+            return "❌ Is video mein transcripts disabled hain."
 
         full_text = ""
         for entry in transcript_list:
@@ -741,12 +768,8 @@ def analyze_youtube(
             secs = int(entry["start"]) % 60
             full_text += f"[{mins:02d}:{secs:02d}] {entry['text']}\n"
 
-        if len(full_text) > 30000:
-            full_text = full_text[:30000] + "\n\n[...transcript truncated...]"
-
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        model_obj = genai.GenerativeModel(model)
+        if len(full_text) > 28000:
+            full_text = full_text[:28000] + "\n\n[...transcript truncated...]"
 
         mode_prompts = {
             "Full Transcript + Summary": (
@@ -817,59 +840,55 @@ def analyze_youtube(
             ),
         }
 
-        base = mode_prompts.get(yt_mode, mode_prompts["Full Transcript + Summary"])
-        fmt  = format_instructions.get(output_format, format_instructions["Detailed Report"])
-        prompt = f"{base}\nOutput format instruction: {fmt}\n\nTranscript:\n\n{full_text}"
+        base   = mode_prompts.get(yt_mode, mode_prompts["Full Transcript + Summary"])
+        fmt    = format_instructions.get(output_format, format_instructions["Detailed Report"])
+        prompt = f"{base}\nOutput format: {fmt}\n\nTranscript:\n\n{full_text}"
 
-        response = model_obj.generate_content(
-            prompt, generation_config=genai.types.GenerationConfig(temperature=temperature)
-        )
-        return response.text
+        primary_model = MODEL_MAP.get(model_tier, MODEL_MAP["Ultra"])
+        messages = [
+            {"role": "system", "content": PERSONAS.get("NEXUS Default", "")},
+            {"role": "user", "content": prompt}
+        ]
+        return _call_with_fallback(api_key, messages, primary_model, temperature)
 
     except ImportError:
-        return "❌ `youtube-transcript-api` is not installed. Add it to requirements.txt."
+        return "❌ `youtube-transcript-api` install nahi hai. requirements.txt mein add karo."
     except Exception as e:
-        err = str(e)
-        if "API_KEY_INVALID" in err or "invalid" in err.lower():
-            return "❌ Invalid API Key. Please copy the correct key from Google AI Studio."
-        elif "quota" in err.lower():
-            return "❌ API quota exceeded. Please try again later."
-        else:
-            return f"❌ Error: {err}"
+        return f"❌ Error: {str(e)[:100]}"
 
 
 # ═══════════════════════════════════════════════════════
-#  BACKEND — Neural Chat (non-streaming fallback)
+#  BACKEND — Neural Chat
 # ═══════════════════════════════════════════════════════
-def neural_chat_response(messages: list, api_key: str, temperature: float, model: str, persona: str = "NEXUS Default") -> str:
+def neural_chat_response(messages: list, api_key: str, temperature: float, model_tier: str, persona: str = "NEXUS Default") -> str:
     if not api_key:
-        return "⚠️ API Key missing. Please enter your Gemini API Key in the sidebar."
+        return "⚠️ API Key nahi hai. Sidebar mein key daalo."
+
+    system_prompt = PERSONAS.get(persona, PERSONAS["NEXUS Default"])
+    primary_model = MODEL_MAP.get(model_tier, MODEL_MAP["Ultra"])
+
+    groq_messages = [{"role": "system", "content": system_prompt}]
+    for msg in messages:
+        role = "assistant" if msg["role"] == "assistant" else "user"
+        groq_messages.append({"role": role, "content": msg["content"]})
+
+    return _call_with_fallback(api_key, groq_messages, primary_model, temperature)
+
+
+# ═══════════════════════════════════════════════════════
+#  BACKEND — Voice Transcription
+# ═══════════════════════════════════════════════════════
+def transcribe_voice(audio_bytes: bytes, api_key: str) -> str:
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-
-        history = []
-        for msg in messages[:-1]:
-            role = "model" if msg["role"] == "assistant" else "user"
-            history.append({"role": role, "parts": [msg["content"]]})
-
-        system_prompt = PERSONAS.get(persona, PERSONAS["NEXUS Default"])
-        model_obj = genai.GenerativeModel(model, system_instruction=system_prompt)
-        chat      = model_obj.start_chat(history=history)
-        response  = chat.send_message(
-            messages[-1]["content"],
-            generation_config=genai.types.GenerationConfig(temperature=temperature)
+        client = _groq_client(api_key)
+        transcription = client.audio.transcriptions.create(
+            file=("audio.wav", audio_bytes, "audio/wav"),
+            model=WHISPER_MODEL,
+            response_format="text",
         )
-        return response.text
-
+        return str(transcription)
     except Exception as e:
-        err = str(e)
-        if "API_KEY_INVALID" in err or "invalid" in err.lower():
-            return "❌ Invalid API Key. Please copy the correct key from Google AI Studio."
-        elif "quota" in err.lower():
-            return "❌ API quota exceeded. Please try again later."
-        else:
-            return f"❌ Error: {err}"
+        return f"[Transcription error: {str(e)[:80]}]"
 
 
 # ─────────────────────────────────────────────
@@ -878,13 +897,13 @@ def neural_chat_response(messages: list, api_key: str, temperature: float, model
 INITIAL_GREETING = {
     "role": "assistant",
     "content": (
-        "Hello! I'm **NEXUS**, your AI intelligence platform.\n\n"
-        "I can:\n"
-        "- 📄 Analyze documents (PDF, DOCX, TXT, CSV)\n"
-        "- ▶️ Summarize YouTube videos with timestamps\n"
-        "- 🖼️ Analyze images with Gemini Vision\n"
-        "- 💬 Answer any question in multi-turn conversation\n\n"
-        "How can I assist you today?"
+        "Hey! Main NEXUS hoon — tumhara AI intelligence platform.\n\n"
+        "Main kar sakta hoon:\n"
+        "- 📄 Documents analyze karna (PDF, DOCX, TXT, CSV)\n"
+        "- ▶️ YouTube videos summarize karna timestamps ke saath\n"
+        "- 🖼️ Images analyze karna\n"
+        "- 💬 Kisi bhi sawaal ka jawab dena\n\n"
+        "Batao, aaj kya kaam hai?"
     )
 }
 
@@ -898,6 +917,7 @@ def _init_state():
         "incognito":       False,
         "theme":           "Nova Crystal",
         "persona":         "NEXUS Default",
+        "model_tier":      "Ultra",
         "rate_timestamps": [],
         "copy_states":     {},
     }
@@ -908,9 +928,6 @@ def _init_state():
 
 _init_state()
 
-# ─────────────────────────────────────────────
-#  Inject CSS (theme-aware)
-# ─────────────────────────────────────────────
 theme_vars = THEME_VARS.get(st.session_state.theme, THEME_VARS["Nova Crystal"])
 st.markdown(BASE_CSS.format(theme_vars=theme_vars), unsafe_allow_html=True)
 
@@ -922,7 +939,7 @@ def render_landing_page():
     st.markdown("""
     <div class="nova-landing">
         <div class="nova-landing-mark">N</div>
-        <div class="nova-landing-eyebrow">Intelligence Platform · v5.0</div>
+        <div class="nova-landing-eyebrow">Intelligence Platform · v5.1</div>
         <div class="nova-landing-title">NEXUS<span>.</span></div>
         <div class="nova-landing-sub">
             Next-generation multi-modal AI — document analysis,<br>
@@ -966,54 +983,55 @@ def render_sidebar():
         </div>
         """, unsafe_allow_html=True)
 
-        # ── API Key ──
+        # Load key from secrets
         secret_key = ""
         try:
-            secret_key = st.secrets.get("GEMINI_API_KEY", "")
+            secret_key = st.secrets.get("GROQ_API_KEY", "")
         except Exception:
             pass
 
         st.markdown('<div class="nova-sb-divider"><span>API Config</span></div>', unsafe_allow_html=True)
         api_key = st.text_input(
-            "Gemini API Key",
+            "Neural Engine Key",
             value=secret_key,
             type="password",
-            placeholder="AIza••••••••••••••••",
-            help="Set GEMINI_API_KEY in Streamlit Secrets for automatic loading."
+            placeholder="gsk_••••••••••••••••",
+            help="Set GROQ_API_KEY in Streamlit Secrets for automatic loading."
         )
         status_color = "#c8a778" if api_key else "#d95555"
-        status_text  = "Key Detected ✓" if api_key else "No Key — Enter Above"
+        status_text  = "Key Active ✓" if api_key else "No Key — Enter Above"
         st.markdown(
             f'<div class="nova-api-status" style="color:{status_color};">◈ {status_text}</div>',
             unsafe_allow_html=True
         )
 
-        # ── API Key Validator ──
         if api_key:
-            if st.button("✓  Validate API Key", use_container_width=True, key="validate_key"):
-                with st.spinner("Validating..."):
+            if st.button("✓  Validate Key", use_container_width=True, key="validate_key"):
+                with st.spinner("Checking..."):
                     is_valid, msg = validate_api_key(api_key)
                 if is_valid:
                     st.toast(f"✅ {msg}", icon="✅")
                 else:
                     st.toast(f"❌ {msg}", icon="❌")
 
-        # ── Model ──
-        st.markdown('<div class="nova-sb-divider"><span>Model</span></div>', unsafe_allow_html=True)
-        model_choice = st.selectbox(
-            "AI Engine",
-            options=["gemini-2.0-flash", "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-05-06"],
-            index=0,
+        # Intelligence Tier
+        st.markdown('<div class="nova-sb-divider"><span>Intelligence Tier</span></div>', unsafe_allow_html=True)
+        model_tier = st.selectbox(
+            "Engine Mode",
+            options=["Ultra", "Balanced", "Fast"],
+            index=["Ultra", "Balanced", "Fast"].index(st.session_state.model_tier),
+            key="model_tier_select"
         )
-        model_meta = {
-    "gemini-2.0-flash":                ("1M ctx · Fast & Free",  "#a8c878"),
-    "gemini-2.5-flash-preview-04-17":  ("1M ctx · Balanced",     "#c8a778"),
-    "gemini-2.5-pro-preview-05-06":    ("1M ctx · Max quality",  "#7c9ec8"),
-}
-        meta_text, meta_color = model_meta.get(model_choice, ("", "#888"))
-        st.markdown(f'<div class="nova-model-meta" style="color:{meta_color};">{meta_text}</div>', unsafe_allow_html=True)
+        st.session_state.model_tier = model_tier
+        tier_meta = {
+            "Ultra":    ("Max intelligence · Best results",  "#c8a778"),
+            "Balanced": ("Great balance of speed & quality", "#a8c878"),
+            "Fast":     ("Lightning fast · Quick answers",   "#7c9ec8"),
+        }
+        meta_text, meta_color = tier_meta.get(model_tier, ("", "#888"))
+        st.markdown(f'<div class="nova-model-meta" style="color:{meta_color};">◈ {meta_text}</div>', unsafe_allow_html=True)
 
-        # ── Persona ──
+        # Persona
         st.markdown('<div class="nova-sb-divider"><span>AI Persona</span></div>', unsafe_allow_html=True)
         persona = st.selectbox(
             "Active Persona",
@@ -1034,17 +1052,17 @@ def render_sidebar():
             unsafe_allow_html=True
         )
 
-        # ── Parameters ──
+        # Temperature
         st.markdown('<div class="nova-sb-divider"><span>Parameters</span></div>', unsafe_allow_html=True)
-        temperature = st.slider("Analysis Creativity", min_value=0.0, max_value=1.0, value=0.35, step=0.05)
+        temperature = st.slider("Response Style", min_value=0.0, max_value=1.0, value=0.7, step=0.05)
         creativity_label = (
             "Precise & Factual" if temperature < 0.3
             else "Balanced" if temperature < 0.6
-            else "Creative & Exploratory"
+            else "Creative & Expressive"
         )
         st.markdown(f'<div class="nova-creativity-tag">◈ {creativity_label}</div>', unsafe_allow_html=True)
 
-        # ── Theme Switcher ──
+        # Theme
         st.markdown('<div class="nova-sb-divider"><span>Theme</span></div>', unsafe_allow_html=True)
         theme = st.radio(
             "Visual Theme",
@@ -1057,13 +1075,13 @@ def render_sidebar():
             st.session_state.theme = theme
             st.rerun()
 
-        # ── Stats ──
+        # Stats
         st.markdown('<div class="nova-sb-divider"><span>Quick Stats</span></div>', unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         with c1: st.metric("Queries", str(st.session_state.query_count))
         with c2: st.metric("Turns",   str(len(st.session_state.chat_history)))
 
-        # ── Session Controls ──
+        # Session
         st.markdown('<div class="nova-sb-divider"><span>Session</span></div>', unsafe_allow_html=True)
         if st.button("↩  Return to Landing", use_container_width=True, key="back_landing"):
             st.session_state.app_mode = "landing"
@@ -1073,7 +1091,7 @@ def render_sidebar():
                 del st.session_state[k]
             st.rerun()
 
-        # ── Incognito ──
+        # Privacy
         st.markdown('<div class="nova-sb-divider"><span>Privacy</span></div>', unsafe_allow_html=True)
         incognito = st.toggle("Incognito Mode", value=st.session_state.incognito, key="incognito_toggle")
         st.session_state.incognito = incognito
@@ -1088,15 +1106,15 @@ def render_sidebar():
         <div style="margin-top:20px; padding-top:12px; border-top:1px solid var(--border);
                     font-size:10px; color:var(--tx-3); font-family:var(--fb);
                     text-align:center; letter-spacing:.08em;">
-            NEXUS © 2025 &nbsp;·&nbsp; <span style="color:var(--accent);">Powered by Gemini</span>
+            NEXUS © 2026 &nbsp;·&nbsp; <span style="color:var(--accent);">Neural Intelligence</span>
         </div>
         """, unsafe_allow_html=True)
 
-    return api_key, temperature, model_choice
+    return api_key, temperature, model_tier
 
 
 # ═══════════════════════════════════════════
-#  CHAT BUBBLE RENDERER (with copy buttons)
+#  CHAT BUBBLE RENDERER
 # ═══════════════════════════════════════════
 def render_chat_history(history: list):
     for i, msg in enumerate(history):
@@ -1112,25 +1130,19 @@ def render_chat_history(history: list):
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            st.markdown(f'<div class="nova-bub-ai">', unsafe_allow_html=True)
+            st.markdown('<div class="nova-bub-ai">', unsafe_allow_html=True)
             st.markdown(content)
             st.markdown("</div>", unsafe_allow_html=True)
 
-            # Copy button + token count
             token_count = approx_tokens(content)
             copy_col, token_col = st.columns([1, 4])
             with copy_col:
-                copy_key = f"copy_btn_{i}"
-                if st.button("📋 Copy", key=copy_key, help="Copy this response"):
+                if st.button("📋 Copy", key=f"copy_btn_{i}", help="Copy this response"):
                     st.session_state.copy_states[str(i)] = not st.session_state.copy_states.get(str(i), False)
             with token_col:
-                st.markdown(
-                    f'<div class="nova-token-tag">~{token_count} tokens</div>',
-                    unsafe_allow_html=True
-                )
+                st.markdown(f'<div class="nova-token-tag">~{token_count} tokens</div>', unsafe_allow_html=True)
             if st.session_state.copy_states.get(str(i), False):
                 st.code(content, language=None)
-
         else:
             st.markdown("""
             <div class="nova-msg-wrap">
@@ -1146,7 +1158,7 @@ def render_chat_history(history: list):
 
 
 # ═══════════════════════════════════════════
-#  CHAT EXPORT HELPER
+#  CHAT EXPORT
 # ═══════════════════════════════════════════
 def build_chat_export(history: list, fmt: str = "md") -> str:
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -1165,7 +1177,7 @@ def build_chat_export(history: list, fmt: str = "md") -> str:
 # ═══════════════════════════════════════════
 #  DASHBOARD
 # ═══════════════════════════════════════════
-def render_dashboard(api_key, temperature, model_choice):
+def render_dashboard(api_key, temperature, model_tier):
 
     st.markdown("""
     <div class="nova-header">
@@ -1180,10 +1192,10 @@ def render_dashboard(api_key, temperature, model_choice):
     st.markdown("""
     <div class="nova-stats-row">
         <div class="nova-stat-card"><div class="nova-stat-value">99.2%</div><div class="nova-stat-label">Uptime SLA</div></div>
-        <div class="nova-stat-card"><div class="nova-stat-value">&lt;1.2s</div><div class="nova-stat-label">Avg Response</div></div>
-        <div class="nova-stat-card"><div class="nova-stat-value">2M+</div><div class="nova-stat-label">Context Window</div></div>
+        <div class="nova-stat-card"><div class="nova-stat-value">&lt;1s</div><div class="nova-stat-label">Avg Response</div></div>
+        <div class="nova-stat-card"><div class="nova-stat-value">128k</div><div class="nova-stat-label">Context Window</div></div>
         <div class="nova-stat-card"><div class="nova-stat-value">5</div><div class="nova-stat-label">AI Modules</div></div>
-        <div class="nova-stat-card"><div class="nova-stat-value">RAG</div><div class="nova-stat-label">Memory Engine</div></div>
+        <div class="nova-stat-card"><div class="nova-stat-value">Auto</div><div class="nova-stat-label">Fallback Engine</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1191,7 +1203,7 @@ def render_dashboard(api_key, temperature, model_choice):
     <div class="nova-chip-row">
         <span class="nova-chip">◈ Real-Time Analysis</span>
         <span class="nova-chip">◎ Multi-Modal</span>
-        <span class="nova-chip">▣ RAG Memory</span>
+        <span class="nova-chip">▣ Auto Fallback</span>
         <span class="nova-chip">◈ Encrypted Keys</span>
         <span class="nova-chip">◉ Voice Commands</span>
         <span class="nova-chip">▤ PDF Intelligence</span>
@@ -1208,9 +1220,7 @@ def render_dashboard(api_key, temperature, model_choice):
         "  ◉  Voice  ",
     ])
 
-    # ═══════════════════════════════════════
-    # TAB 1: Document Intelligence
-    # ═══════════════════════════════════════
+    # ═══ TAB 1: Document ═══
     with tab1:
         col_main, col_side = st.columns([3, 2], gap="large")
         with col_main:
@@ -1254,12 +1264,7 @@ def render_dashboard(api_key, temperature, model_choice):
                     "⚔️ Debate This",
                 ]
             )
-            analyze_btn = st.button(
-                "◈  Analyze Document",
-                use_container_width=True,
-                key="doc_analyze",
-                type="primary"
-            )
+            analyze_btn = st.button("◈  Analyze Document", use_container_width=True, key="doc_analyze", type="primary")
 
         with col_side:
             st.markdown("""
@@ -1274,32 +1279,32 @@ def render_dashboard(api_key, temperature, model_choice):
             </div>
             """, unsafe_allow_html=True)
 
-            opt_hyperlinks = st.checkbox("Extract Hyperlinks",           value=True)
-            opt_tables     = st.checkbox("Parse Tables & Charts",         value=True)
-            opt_images     = st.checkbox("Describe Embedded Images",      value=False)
-            _              = st.checkbox("Cross-reference Web Sources",   value=False)
-            opt_pii        = st.checkbox("PII Detection & Redaction",     value=False)
-            opt_quotes     = st.checkbox("Generate Key Quotes",           value=True)
+            opt_hyperlinks = st.checkbox("Extract Hyperlinks",         value=True)
+            opt_tables     = st.checkbox("Parse Tables & Charts",       value=True)
+            opt_images     = st.checkbox("Describe Embedded Images",    value=False)
+            _              = st.checkbox("Cross-reference Web Sources", value=False)
+            opt_pii        = st.checkbox("PII Detection & Redaction",   value=False)
+            opt_quotes     = st.checkbox("Generate Key Quotes",         value=True)
 
-            pipeline_status = "✓ Ready" if api_key else "⏳ API Key Needed"
+            pipeline_status = "✓ Ready" if api_key else "⏳ Key Needed"
             pipeline_color  = "var(--accent)" if api_key else "var(--danger)"
             st.markdown(f"""
             <div class="nova-pipeline" style="margin-top:12px;">
                 <div class="nova-pipeline-title">Pipeline Status</div>
                 Loader ────── ✓ Ready<br>
                 Chunker ───── ✓ Ready<br>
-                Embedder ──── <span style="color:{pipeline_color};">{pipeline_status}</span><br>
-                LLM Engine ── <span style="color:{pipeline_color};">{pipeline_status}</span>
+                Primary ───── <span style="color:{pipeline_color};">{pipeline_status}</span><br>
+                Fallback ──── <span style="color:var(--accent);">✓ Auto</span>
             </div>
             """, unsafe_allow_html=True)
 
         if analyze_btn:
             if not uploaded_file:
-                st.warning("Please upload a document first.")
+                st.warning("Pehle document upload karo.")
             elif not api_key:
-                st.error("❌ No API Key. Please enter your Gemini API Key in the sidebar.")
+                st.error("❌ API Key nahi hai. Sidebar mein daalo.")
             elif not check_rate_limit():
-                st.error("⏱ Rate limit reached. Please wait a moment before retrying.")
+                st.error("⏱ Rate limit. Thodi der baad try karo.")
             else:
                 safe, category = is_safe(analysis_type)
                 if not safe:
@@ -1310,12 +1315,12 @@ def render_dashboard(api_key, temperature, model_choice):
                         st.markdown("""
                         <div class="nova-thinking">
                             <div class="nova-dots"><span></span><span></span><span></span></div>
-                            <div class="nova-thinking-text">NEXUS is processing your document...</div>
+                            <div class="nova-thinking-text">NEXUS document padh raha hai...</div>
                         </div>
                         """, unsafe_allow_html=True)
 
                     result = analyze_document(
-                        uploaded_file, api_key, temperature, model_choice,
+                        uploaded_file, api_key, temperature, model_tier,
                         analysis_type, opt_hyperlinks, opt_tables, opt_images, opt_pii, opt_quotes
                     )
                     thinking_ph.empty()
@@ -1323,7 +1328,7 @@ def render_dashboard(api_key, temperature, model_choice):
 
                     if result.startswith("❌"):
                         st.error(result)
-                        st.toast("Analysis failed — check API key or try again.", icon="❌")
+                        st.toast("Analysis fail hua.", icon="❌")
                     else:
                         st.toast("Analysis complete!", icon="✅")
                         st.markdown("""
@@ -1335,27 +1340,13 @@ def render_dashboard(api_key, temperature, model_choice):
                         </div>
                         """, unsafe_allow_html=True)
                         st.markdown(result)
-                        dl_col1, dl_col2 = st.columns(2)
-                        with dl_col1:
-                            st.download_button(
-                                "↓  Export as .md",
-                                data=result,
-                                file_name="nexus_report.md",
-                                mime="text/markdown",
-                                use_container_width=True,
-                            )
-                        with dl_col2:
-                            st.download_button(
-                                "↓  Export as .txt",
-                                data=result,
-                                file_name="nexus_report.txt",
-                                mime="text/plain",
-                                use_container_width=True,
-                            )
+                        dl1, dl2 = st.columns(2)
+                        with dl1:
+                            st.download_button("↓  Export as .md", data=result, file_name="nexus_report.md", mime="text/markdown", use_container_width=True)
+                        with dl2:
+                            st.download_button("↓  Export as .txt", data=result, file_name="nexus_report.txt", mime="text/plain", use_container_width=True)
 
-    # ═══════════════════════════════════════
-    # TAB 2: YouTube
-    # ═══════════════════════════════════════
+    # ═══ TAB 2: YouTube ═══
     with tab2:
         st.markdown("""
         <div class="nova-card">
@@ -1372,7 +1363,6 @@ def render_dashboard(api_key, temperature, model_choice):
         yt_col1, yt_col2 = st.columns([2, 1], gap="large")
         with yt_col1:
             yt_url = st.text_input("YouTube URL", placeholder="https://www.youtube.com/watch?v=...")
-
             yt_mode = st.selectbox("Extraction Mode", [
                 "Full Transcript + Summary",
                 "Key Moments & Timestamps",
@@ -1387,12 +1377,7 @@ def render_dashboard(api_key, temperature, model_choice):
                 ["Detailed Report", "Bullet Points", "Twitter/X Thread", "Email Brief"],
                 horizontal=True
             )
-            yt_analyze_btn = st.button(
-                "▶  Extract Intelligence",
-                use_container_width=True,
-                key="yt_go",
-                type="primary"
-            )
+            yt_analyze_btn = st.button("▶  Extract Intelligence", use_container_width=True, key="yt_go", type="primary")
 
         with yt_col2:
             preview_html = ""
@@ -1402,11 +1387,9 @@ def render_dashboard(api_key, temperature, model_choice):
                     vid_id = vid_match.group(1)
                     preview_html = f"""
                     <iframe width="100%" height="130" src="https://www.youtube.com/embed/{vid_id}"
-                        frameborder="0" allow="accelerometer; autoplay; clipboard-write;
-                        encrypted-media; gyroscope; picture-in-picture" allowfullscreen
+                        frameborder="0" allowfullscreen
                         style="border-radius:var(--r-sm);"></iframe>
                     """
-
             st.markdown(f"""
             <div class="nova-card" style="min-height:200px;">
                 <div class="nova-card-header">
@@ -1424,11 +1407,11 @@ def render_dashboard(api_key, temperature, model_choice):
 
         if yt_analyze_btn:
             if not yt_url.strip():
-                st.warning("Please paste a YouTube URL to begin.")
+                st.warning("YouTube URL paste karo.")
             elif not api_key:
-                st.error("❌ No API Key. Please enter your Gemini API Key in the sidebar.")
+                st.error("❌ API Key nahi hai.")
             elif not check_rate_limit():
-                st.error("⏱ Rate limit reached. Please wait a moment before retrying.")
+                st.error("⏱ Rate limit. Thodi der baad try karo.")
             else:
                 safe, category = is_safe(yt_url)
                 if not safe:
@@ -1439,19 +1422,17 @@ def render_dashboard(api_key, temperature, model_choice):
                         st.markdown("""
                         <div class="nova-thinking">
                             <div class="nova-dots"><span></span><span></span><span></span></div>
-                            <div class="nova-thinking-text">Fetching transcript, please wait...</div>
+                            <div class="nova-thinking-text">Transcript fetch ho raha hai...</div>
                         </div>
                         """, unsafe_allow_html=True)
 
-                    result = analyze_youtube(
-                        yt_url, api_key, temperature, model_choice, yt_mode, output_format
-                    )
+                    result = analyze_youtube(yt_url, api_key, temperature, model_tier, yt_mode, output_format)
                     thinking_ph.empty()
                     st.session_state.query_count += 1
 
                     if result.startswith("❌"):
                         st.error(result)
-                        st.toast("Extraction failed.", icon="❌")
+                        st.toast("Extraction fail hua.", icon="❌")
                     else:
                         st.toast("Video intelligence extracted!", icon="✅")
                         st.markdown("""
@@ -1465,25 +1446,11 @@ def render_dashboard(api_key, temperature, model_choice):
                         st.markdown(result)
                         dl_c1, dl_c2 = st.columns(2)
                         with dl_c1:
-                            st.download_button(
-                                "↓  Export as .md",
-                                data=result,
-                                file_name="nexus_yt_report.md",
-                                mime="text/markdown",
-                                use_container_width=True,
-                            )
+                            st.download_button("↓  Export as .md", data=result, file_name="nexus_yt_report.md", mime="text/markdown", use_container_width=True)
                         with dl_c2:
-                            st.download_button(
-                                "↓  Export as .txt",
-                                data=result,
-                                file_name="nexus_yt_report.txt",
-                                mime="text/plain",
-                                use_container_width=True,
-                            )
+                            st.download_button("↓  Export as .txt", data=result, file_name="nexus_yt_report.txt", mime="text/plain", use_container_width=True)
 
-    # ═══════════════════════════════════════
-    # TAB 3: Neural Chat
-    # ═══════════════════════════════════════
+    # ═══ TAB 3: Neural Chat ═══
     with tab3:
         chat_col, info_col = st.columns([3, 1], gap="large")
 
@@ -1493,7 +1460,7 @@ def render_dashboard(api_key, temperature, model_choice):
                 <div class="nova-card-header">
                     <div class="nova-card-icon">◎</div>
                     <div>
-                        <div class="nova-card-title">Neural Chat — Gemini AI</div>
+                        <div class="nova-card-title">Neural Chat</div>
                         <div class="nova-card-sub">Multi-turn · Context-Aware · Streaming · Markdown Rendered</div>
                     </div>
                 </div>
@@ -1510,19 +1477,17 @@ def render_dashboard(api_key, temperature, model_choice):
                 render_chat_history(st.session_state.chat_history)
                 st.markdown("</div>", unsafe_allow_html=True)
 
-            # Input row
             inp_c1, inp_c2 = st.columns([5, 1])
             with inp_c1:
                 user_input = st.text_input(
                     "Message",
-                    placeholder="Type anything — NEXUS is listening...",
+                    placeholder="Kuch bhi poochho — NEXUS sun raha hai...",
                     label_visibility="collapsed",
                     key=f"chat_input_{st.session_state.input_counter}"
                 )
             with inp_c2:
                 send_btn = st.button("Send ▶", use_container_width=True, key="chat_send", type="primary")
 
-            # Prompt Templates
             st.markdown(
                 '<div style="font-size:9.5px;font-family:var(--fb);letter-spacing:.08em;'
                 'text-transform:uppercase;color:var(--tx-3);margin-bottom:6px;margin-top:4px;">'
@@ -1541,7 +1506,7 @@ def render_dashboard(api_key, temperature, model_choice):
                 send_btn   = True
 
         with info_col:
-            turns = len(st.session_state.chat_history)
+            turns        = len(st.session_state.chat_history)
             total_tokens = sum(approx_tokens(m["content"]) for m in st.session_state.chat_history)
             st.markdown(f"""
             <div class="nova-card-accent">
@@ -1550,14 +1515,14 @@ def render_dashboard(api_key, temperature, model_choice):
                     <div><div class="nova-card-title">Chat Status</div></div>
                 </div>
                 <div class="nova-pipeline">
-                    Gemini API ── <span style="color:{'var(--accent)' if api_key else 'var(--danger)'};">
+                    Engine ──── <span style="color:{'var(--accent)' if api_key else 'var(--danger)'};">
                         {'● Active' if api_key else '● No Key'}</span><br>
-                    Model ──────  <span style="color:var(--tx);">{model_choice.split('-')[1]}</span><br>
-                    Persona ────  <span style="color:var(--tx);">{st.session_state.persona.split()[0]}</span><br>
+                    Tier ───────  <span style="color:var(--tx);">{model_tier}</span><br>
+                    Persona ──  <span style="color:var(--tx);">{st.session_state.persona.split()[0]}</span><br>
                     Turns ──────  <span style="color:var(--tx);">{turns}</span><br>
-                    ~Tokens ────  <span style="color:var(--tx);">{total_tokens}</span><br>
-                    Temp ───────  <span style="color:var(--tx);">{temperature}</span><br>
-                    Incognito ──  <span style="color:{'var(--accent)' if st.session_state.incognito else 'var(--tx-3)'};">
+                    ~Tokens ──  <span style="color:var(--tx);">{total_tokens}</span><br>
+                    Temp ────── <span style="color:var(--tx);">{temperature}</span><br>
+                    Incognito ─  <span style="color:{'var(--accent)' if st.session_state.incognito else 'var(--tx-3)'};">
                         {'ON' if st.session_state.incognito else 'OFF'}</span>
                 </div>
             </div>
@@ -1570,7 +1535,6 @@ def render_dashboard(api_key, temperature, model_choice):
                 st.session_state.input_counter += 1
                 st.rerun()
 
-            # Chat Export
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown(
                 '<div style="font-size:9.5px;font-family:var(--fb);letter-spacing:.08em;'
@@ -1597,12 +1561,12 @@ def render_dashboard(api_key, temperature, model_choice):
                     key="export_txt"
                 )
 
-        # ── Process message with streaming ──
+        # Process message with streaming
         if send_btn and user_input and user_input.strip():
             if not api_key:
-                st.error("❌ No API Key. Please enter your Gemini API Key in the sidebar.")
+                st.error("❌ API Key nahi hai. Sidebar mein daalo.")
             elif not check_rate_limit():
-                st.error("⏱ Rate limit reached. Please wait a moment.")
+                st.error("⏱ Rate limit. Thodi der baad try karo.")
             else:
                 safe, category = is_safe(user_input)
                 if not safe:
@@ -1616,22 +1580,16 @@ def render_dashboard(api_key, temperature, model_choice):
                         else st.session_state.chat_history
                     )
 
-                    # ── Streaming response ──
                     full_response = ""
                     try:
-                        import google.generativeai as genai
-                        genai.configure(api_key=api_key)
-
-                        history_gemini = []
-                        for msg in messages_to_send[:-1]:
-                            role = "model" if msg["role"] == "assistant" else "user"
-                            history_gemini.append({"role": role, "parts": [msg["content"]]})
-
                         system_prompt = PERSONAS.get(st.session_state.persona, PERSONAS["NEXUS Default"])
-                        model_obj = genai.GenerativeModel(model_choice, system_instruction=system_prompt)
-                        chat_obj  = model_obj.start_chat(history=history_gemini)
+                        primary_model = MODEL_MAP.get(model_tier, MODEL_MAP["Ultra"])
 
-                        # Show streaming header
+                        groq_messages = [{"role": "system", "content": system_prompt}]
+                        for msg in messages_to_send:
+                            role = "assistant" if msg["role"] == "assistant" else "user"
+                            groq_messages.append({"role": role, "content": msg["content"]})
+
                         st.markdown("""
                         <div class="nova-msg-wrap">
                             <div class="nova-msg-header-ai">
@@ -1642,14 +1600,12 @@ def render_dashboard(api_key, temperature, model_choice):
                         """, unsafe_allow_html=True)
 
                         stream_ph = st.empty()
-                        stream    = chat_obj.send_message(
-                            user_input,
-                            stream=True,
-                            generation_config=genai.types.GenerationConfig(temperature=temperature)
-                        )
+                        stream = _call_groq(api_key, groq_messages, primary_model, temperature, stream=True)
+
                         for chunk in stream:
-                            if hasattr(chunk, "text") and chunk.text:
-                                full_response += chunk.text
+                            delta = chunk.choices[0].delta.content
+                            if delta:
+                                full_response += delta
                                 stream_ph.markdown(
                                     f'<div class="nova-bub-ai">{full_response} ▊</div>',
                                     unsafe_allow_html=True
@@ -1661,16 +1617,18 @@ def render_dashboard(api_key, temperature, model_choice):
 
                     except Exception as e:
                         err = str(e)
-                        if "API_KEY_INVALID" in err or "invalid" in err.lower():
-                            full_response = "❌ Invalid API Key. Please copy the correct key from Google AI Studio."
+                        if "invalid_api_key" in err.lower() or "authentication" in err.lower():
+                            full_response = "❌ API Key galat hai. Sahi key daalo."
                             st.toast("Invalid API Key!", icon="❌")
-                        elif "quota" in err.lower():
-                            full_response = "❌ API quota exceeded. Please try again later."
-                            st.toast("API quota exceeded.", icon="⚠️")
+                        elif "rate_limit" in err.lower():
+                            full_response = neural_chat_response(
+                                messages_to_send, api_key, temperature, model_tier, st.session_state.persona
+                            )
                         else:
-                            full_response = f"❌ Error: {err}"
-                            st.toast("Something went wrong.", icon="❌")
-                        st.error(full_response)
+                            full_response = f"❌ Kuch error aaya: {err[:80]}"
+                            st.toast("Kuch gadbad hui.", icon="❌")
+                        if full_response.startswith("❌"):
+                            st.error(full_response)
 
                     if full_response:
                         st.session_state.chat_history.append({"role": "assistant", "content": full_response})
@@ -1686,9 +1644,7 @@ def render_dashboard(api_key, temperature, model_choice):
                     st.session_state.input_counter += 1
                     st.rerun()
 
-    # ═══════════════════════════════════════
-    # TAB 4: Image Vision
-    # ═══════════════════════════════════════
+    # ═══ TAB 4: Image Vision ═══
     with tab4:
         img_col1, img_col2 = st.columns([3, 2], gap="large")
 
@@ -1699,7 +1655,7 @@ def render_dashboard(api_key, temperature, model_choice):
                     <div class="nova-card-icon">🖼</div>
                     <div>
                         <div class="nova-card-title">Image Vision Engine</div>
-                        <div class="nova-card-sub">Upload any image — Gemini Vision analyzes it</div>
+                        <div class="nova-card-sub">Upload any image — NEXUS analyzes it</div>
                     </div>
                 </div>
             </div>
@@ -1740,12 +1696,7 @@ def render_dashboard(api_key, temperature, model_choice):
                 key="img_mode"
             )
 
-            analyze_img_btn = st.button(
-                "🖼  Analyze Image",
-                use_container_width=True,
-                key="img_analyze",
-                type="primary"
-            )
+            analyze_img_btn = st.button("🖼  Analyze Image", use_container_width=True, key="img_analyze", type="primary")
 
         with img_col2:
             st.markdown("""
@@ -1764,9 +1715,8 @@ def render_dashboard(api_key, temperature, model_choice):
                 st.image(uploaded_img, use_container_width=True)
                 img_size_kb = len(uploaded_img.getvalue()) / 1024
                 st.markdown(
-                    f'<div style="font-size:10px;color:var(--tx-3);font-family:var(--fb);'
-                    f'margin-top:6px;">◈ {uploaded_img.name} · {img_size_kb:.1f} KB · '
-                    f'{uploaded_img.type}</div>',
+                    f'<div style="font-size:10px;color:var(--tx-3);font-family:var(--fb);margin-top:6px;">'
+                    f'◈ {uploaded_img.name} · {img_size_kb:.1f} KB · {uploaded_img.type}</div>',
                     unsafe_allow_html=True
                 )
             else:
@@ -1781,11 +1731,11 @@ def render_dashboard(api_key, temperature, model_choice):
 
         if analyze_img_btn:
             if not uploaded_img:
-                st.warning("Please upload an image first.")
+                st.warning("Pehle image upload karo.")
             elif not api_key:
-                st.error("❌ No API Key. Please enter your Gemini API Key in the sidebar.")
+                st.error("❌ API Key nahi hai.")
             elif not check_rate_limit():
-                st.error("⏱ Rate limit reached. Please wait a moment.")
+                st.error("⏱ Rate limit. Thodi der baad try karo.")
             else:
                 img_mode_prompts = {
                     "General Analysis": "",
@@ -1807,19 +1757,19 @@ def render_dashboard(api_key, temperature, model_choice):
                     st.markdown("""
                     <div class="nova-thinking">
                         <div class="nova-dots"><span></span><span></span><span></span></div>
-                        <div class="nova-thinking-text">Gemini Vision is analyzing your image...</div>
+                        <div class="nova-thinking-text">NEXUS image dekh raha hai...</div>
                     </div>
                     """, unsafe_allow_html=True)
 
-                img_bytes  = uploaded_img.getvalue()
-                mime_type  = uploaded_img.type or "image/jpeg"
-                result = analyze_image(img_bytes, mime_type, final_question, api_key, temperature, model_choice)
+                img_bytes = uploaded_img.getvalue()
+                mime_type = uploaded_img.type or "image/jpeg"
+                result = analyze_image(img_bytes, mime_type, final_question, api_key, temperature, model_tier)
                 thinking_ph.empty()
                 st.session_state.query_count += 1
 
                 if result.startswith("❌"):
                     st.error(result)
-                    st.toast("Image analysis failed.", icon="❌")
+                    st.toast("Image analysis fail hua.", icon="❌")
                 else:
                     st.toast("Image analyzed!", icon="✅")
                     st.markdown("""
@@ -1839,9 +1789,7 @@ def render_dashboard(api_key, temperature, model_choice):
                         use_container_width=True,
                     )
 
-    # ═══════════════════════════════════════
-    # TAB 5: Voice
-    # ═══════════════════════════════════════
+    # ═══ TAB 5: Voice ═══
     with tab5:
         v_col1, v_col2 = st.columns([1, 1], gap="large")
         with v_col1:
@@ -1851,7 +1799,7 @@ def render_dashboard(api_key, temperature, model_choice):
                     <div class="nova-card-icon">◉</div>
                     <div>
                         <div class="nova-card-title">Voice Command Interface</div>
-                        <div class="nova-card-sub">Speak naturally — NEXUS understands intent</div>
+                        <div class="nova-card-sub">Speak naturally — NEXUS understands</div>
                     </div>
                 </div>
                 <div class="nova-voice-orb-wrap">
@@ -1873,29 +1821,30 @@ def render_dashboard(api_key, temperature, model_choice):
                 )
 
                 if audio_data and audio_data.get("bytes"):
-                    st.success("✅ Voice captured! Transcribing...")
+                    st.success("✅ Voice capture ho gaya! Processing...")
 
                     if api_key:
-                        try:
-                            import google.generativeai as genai, base64
-                            genai.configure(api_key=api_key)
-                            model_obj   = genai.GenerativeModel(model_choice)
-                            audio_b64   = base64.b64encode(audio_data["bytes"]).decode()
-                            response    = model_obj.generate_content([
-                                {"inline_data": {"mime_type": "audio/wav", "data": audio_b64}},
-                                "Please transcribe this audio and then answer or respond to what was said."
-                            ])
-                            voice_result = response.text
-                        except Exception as ve:
+                        # Initialize transcript before use — avoids NameError
+                        transcript = None
+                        raw_transcript = transcribe_voice(audio_data["bytes"], api_key)
+
+                        if not raw_transcript.startswith("["):
+                            transcript = raw_transcript
+                            voice_messages = [
+                                INITIAL_GREETING,
+                                {"role": "user", "content": transcript}
+                            ]
+                            voice_ai_reply = neural_chat_response(
+                                voice_messages, api_key, temperature, model_tier, st.session_state.persona
+                            )
+                            voice_result = f"**You said:** {transcript}\n\n---\n\n{voice_ai_reply}"
+                        else:
                             voice_result = (
-                                f"⚠️ Transcription via Gemini failed: {ve}\n\n"
-                                "**Tip:** Use Neural Chat tab to type your query instead."
+                                f"⚠️ Voice transcription fail hua: {raw_transcript}\n\n"
+                                "**Tip:** Neural Chat tab mein type karke try karo."
                             )
                     else:
-                        voice_result = (
-                            "⚠️ API Key missing.\n\n"
-                            "Please enter your Gemini API Key in the sidebar."
-                        )
+                        voice_result = "⚠️ API Key nahi hai. Sidebar mein key daalo."
 
                     st.markdown("""
                     <div class="nova-response-card">
@@ -1908,14 +1857,15 @@ def render_dashboard(api_key, temperature, model_choice):
                     st.markdown(voice_result)
 
                     if api_key and not voice_result.startswith("⚠️"):
-                        st.session_state.chat_history.append({"role": "user",      "content": "[Voice Input]"})
+                        voice_label = f"[Voice] {transcript}" if transcript else "[Voice Input]"
+                        st.session_state.chat_history.append({"role": "user", "content": voice_label})
                         st.session_state.chat_history.append({"role": "assistant", "content": voice_result})
                         st.session_state.query_count += 1
-                        st.toast("Voice response added to Neural Chat history!", icon="◉")
+                        st.toast("Voice response Neural Chat mein save ho gaya!", icon="◉")
 
             except ImportError:
                 st.info(
-                    "📦 `streamlit-mic-recorder` not installed.\n\n"
+                    "📦 `streamlit-mic-recorder` install nahi hai.\n\n"
                     "Add `streamlit-mic-recorder` to your **requirements.txt** and redeploy."
                 )
 
@@ -1935,8 +1885,8 @@ def render_dashboard(api_key, temperature, model_choice):
             for label, example in [
                 ("Document", '"Summarize this PDF"'),
                 ("YouTube",  '"Extract key points from this video"'),
-                ("Chat",     '"Tell me about AI"'),
-                ("System",   '"Change model to Flash"'),
+                ("Chat",     '"Tell me about machine learning"'),
+                ("System",   '"Switch to Fast mode"'),
             ]:
                 st.markdown(f"""
                 <div style="background:var(--s1); border:1px solid var(--border);
@@ -1954,7 +1904,7 @@ def render_dashboard(api_key, temperature, model_choice):
                     <div class="nova-card-icon">◈</div>
                     <div>
                         <div class="nova-card-title">How Voice Works</div>
-                        <div class="nova-card-sub">Powered by Gemini multimodal</div>
+                        <div class="nova-card-sub">Neural audio processing</div>
                     </div>
                 </div>
             </div>
@@ -1963,8 +1913,8 @@ def render_dashboard(api_key, temperature, model_choice):
             1. Click **Start Recording**
             2. Speak your query clearly
             3. Click **Stop Recording**
-            4. NEXUS transcribes + responds via Gemini
-            5. Response also saved to **Neural Chat** history
+            4. NEXUS transcribes + responds
+            5. Response saved to **Neural Chat** history
             """)
 
     # Footer
@@ -1972,10 +1922,10 @@ def render_dashboard(api_key, temperature, model_choice):
     <div class="nova-footer">
         <div class="nova-footer-text">
             NEXUS INTELLIGENCE PLATFORM &nbsp;·&nbsp; BUILT WITH STREAMLIT &nbsp;·&nbsp;
-            POWERED BY <span>GEMINI</span> &nbsp;·&nbsp; © 2025
+            <span>NEURAL ENGINE</span> &nbsp;·&nbsp; © 2026
         </div>
         <div style="margin-top:6px; font-size:9px; color:var(--tx-3); font-family:var(--fb); letter-spacing:.08em;">
-            ALL SYSTEMS OPERATIONAL &nbsp; ◈ &nbsp; v5.0.0
+            ALL SYSTEMS OPERATIONAL &nbsp; ◈ &nbsp; v5.1.0
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1987,5 +1937,5 @@ def render_dashboard(api_key, temperature, model_choice):
 if st.session_state.app_mode == "landing":
     render_landing_page()
 else:
-    api_key, temperature, model_choice = render_sidebar()
-    render_dashboard(api_key, temperature, model_choice)
+    api_key, temperature, model_tier = render_sidebar()
+    render_dashboard(api_key, temperature, model_tier)
