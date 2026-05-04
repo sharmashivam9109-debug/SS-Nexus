@@ -1,6 +1,7 @@
-streamlit
-google-generativeai
+streamlit>=1.31
+groq
 youtube-transcript-api
-streamlit-mic-recorder
 python-docx
+streamlit-mic-recorder
 Pillow
+pdfplumber
