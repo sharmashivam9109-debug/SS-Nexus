@@ -1,4 +1,6 @@
 streamlit
 google-generativeai
 youtube-transcript-api
-streamlit-mic-recorder  
+streamlit-mic-recorder
+python-docx
+Pillow
