@@ -492,7 +492,7 @@ def validate_api_key(api_key: str) -> tuple:
     try:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         resp = model.generate_content("Say OK")
         if resp.text:
             return True, "API Key is valid ✓"
@@ -1002,14 +1002,14 @@ def render_sidebar():
         st.markdown('<div class="nova-sb-divider"><span>Model</span></div>', unsafe_allow_html=True)
         model_choice = st.selectbox(
             "AI Engine",
-            options=["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"],
+            options=["gemini-2.0-flash", "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-05-06"],
             index=0,
         )
         model_meta = {
-            "gemini-1.5-flash":  ("1M ctx · Fast & Free",  "#a8c878"),
-            "gemini-1.5-pro":    ("2M ctx · Max quality",  "#c8a778"),
-            "gemini-2.0-flash":  ("1M ctx · Latest model", "#7c9ec8"),
-        }
+    "gemini-2.0-flash":                ("1M ctx · Fast & Free",  "#a8c878"),
+    "gemini-2.5-flash-preview-04-17":  ("1M ctx · Balanced",     "#c8a778"),
+    "gemini-2.5-pro-preview-05-06":    ("1M ctx · Max quality",  "#7c9ec8"),
+}
         meta_text, meta_color = model_meta.get(model_choice, ("", "#888"))
         st.markdown(f'<div class="nova-model-meta" style="color:{meta_color};">{meta_text}</div>', unsafe_allow_html=True)
 
