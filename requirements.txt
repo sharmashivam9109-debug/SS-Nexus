@@ -1,5 +1,4 @@
 streamlit
 google-generativeai
-streamlit-mic-recorder
-
-
+youtube-transcript-api
+streamlit-mic-recorder  
