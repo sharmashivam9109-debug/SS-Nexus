@@ -622,7 +622,7 @@ def render_sidebar():
         st.markdown('<div class="nova-sb-divider"><span>Model</span></div>', unsafe_allow_html=True)
         model_choice = st.selectbox(
             "AI Engine",
-            options=["gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-1.0-pro"],
+            options=options=["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
             index=0,
         )
         model_meta = {
