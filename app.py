@@ -14,7 +14,7 @@
 # ============================================================
 
 import streamlit as st
-import re, os, tempfile, time, json, base64, io
+import re, os, tempfile, time, json, base64, io, unicodedata
 from datetime import datetime
 
 st.set_page_config(
@@ -23,6 +23,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+FREE_MSG_LIMIT = 15  # Free messages per session before login wall
 
 # ═══════════════════════════════════════════════════════
 #  THEME DEFINITIONS
@@ -230,7 +232,6 @@ html, body, [data-testid="stAppViewContainer"] {{
 .nova-bub-ai {{ background:var(--ai-bub); border:1px solid var(--border); padding:12px 15px; border-radius:2px var(--r) var(--r) var(--r); font-size:13.5px; line-height:1.72; color:var(--tx); }}
 .nova-bub-user {{ background:var(--usr-bub); border:1px solid var(--border); padding:10px 14px; border-radius:var(--r) 2px var(--r) var(--r); font-size:13.5px; line-height:1.72; color:var(--tx); margin-left:auto; max-width:85%; }}
 .nova-copy-row {{ display:flex; align-items:center; gap:6px; margin-top:5px; padding-left:2px; }}
-.nova-token-tag {{ font-size:9px; font-family:var(--fb); color:var(--tx-3); letter-spacing:.06em; }}
 .nova-dots {{ display:flex; gap:4px; padding:3px 0; align-items:center; }}
 .nova-dots span {{ width:5px; height:5px; background:var(--tx-3); border-radius:50%; animation:novaDot 1.3s infinite; }}
 .nova-dots span:nth-child(2){{animation-delay:.17s;}}
@@ -269,6 +270,199 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
 .nova-footer-text span {{ color: var(--accent); }}
 .nova-bub-ai .stMarkdown p,
 .nova-bub-user .stMarkdown p {{ margin: 0 0 6px 0; }}
+[data-testid="InputInstructions"] {{ display: none !important; }}
+/* ── Login Wall ── */
+.nexus-login-wall {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(13,13,16,0.96);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    z-index: 999998;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+}
+.nexus-login-card {
+    background: var(--s1); border: 1px solid var(--border-h);
+    border-radius: 18px; padding: 36px 32px;
+    max-width: 420px; width: 100%; text-align: center;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+}
+.nexus-login-icon {
+    font-size: 40px; margin-bottom: 16px;
+}
+.nexus-login-title {
+    font-family: var(--fb); font-size: 20px; font-weight: 800;
+    color: var(--tx); letter-spacing: -.03em; margin-bottom: 8px;
+}
+.nexus-login-sub {
+    font-family: var(--fs); font-size: 13px; color: var(--tx-2);
+    line-height: 1.7; margin-bottom: 24px;
+}
+.nexus-login-badge {
+    display: inline-block; background: var(--accent-glow);
+    border: 1px solid var(--accent-ring); border-radius: 20px;
+    padding: 4px 14px; font-family: var(--fb); font-size: 11px;
+    font-weight: 700; color: var(--accent); letter-spacing: .06em;
+    margin-bottom: 20px;
+}
+.nexus-free-bar {
+    background: var(--s2); border-radius: 8px; height: 6px;
+    margin: 12px 0 20px; overflow: hidden;
+}
+.nexus-free-fill {
+    height: 100%; border-radius: 8px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-h));
+    transition: width .4s ease;
+}
+/* ── Image Vision Section ── */
+.img-upload-zone {
+    border: 2px dashed var(--border-h);
+    border-radius: var(--r);
+    padding: 32px 20px;
+    text-align: center;
+    background: var(--s1);
+    transition: var(--transition);
+    margin-bottom: 4px;
+}
+.img-upload-zone:hover { border-color: var(--accent); background: var(--s2); }
+.img-upload-icon { font-size: 36px; margin-bottom: 10px; }
+.img-upload-title {
+    font-family: var(--fb); font-size: 14px; font-weight: 700;
+    color: var(--tx); margin-bottom: 4px;
+}
+.img-upload-sub {
+    font-family: var(--fb); font-size: 11px; color: var(--tx-3);
+    letter-spacing: .06em; text-transform: uppercase;
+}
+.img-preview-wrap {
+    border-radius: var(--r); overflow: hidden;
+    border: 1px solid var(--border); margin: 12px 0;
+    background: var(--s1);
+}
+.img-meta-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px; background: var(--s2);
+    border-top: 1px solid var(--border);
+    font-family: var(--fb); font-size: 10px; color: var(--tx-3);
+    letter-spacing: .05em;
+}
+.img-meta-dot { color: var(--accent); font-size: 8px; }
+.img-mode-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin: 12px 0;
+}
+.img-mode-card {
+    background: var(--s1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 14px; cursor: pointer;
+    transition: var(--transition); text-align: left;
+}
+.img-mode-card:hover { border-color: var(--accent); background: var(--s2); }
+.img-mode-card.selected { border-color: var(--accent); background: var(--accent-glow); }
+.img-mode-icon { font-size: 18px; margin-bottom: 4px; }
+.img-mode-label {
+    font-family: var(--fb); font-size: 11px; font-weight: 700;
+    color: var(--tx); display: block; margin-bottom: 2px;
+}
+.img-mode-desc { font-family: var(--fs); font-size: 10px; color: var(--tx-3); }
+.img-result-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; background: var(--s2);
+    border: 1px solid var(--border); border-radius: var(--r) var(--r) 0 0;
+    margin-top: 20px;
+}
+.img-result-title {
+    font-family: var(--fb); font-size: 13px; font-weight: 700; color: var(--tx);
+}
+.img-result-badge {
+    font-family: var(--fb); font-size: 9px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-glow);
+    border: 1px solid var(--accent-ring); border-radius: 20px; padding: 3px 10px;
+}
+.img-result-body {
+    background: var(--s1); border: 1px solid var(--border);
+    border-top: none; border-radius: 0 0 var(--r) var(--r);
+    padding: 18px 18px 14px;
+}
+/* Hide keyboard_double artifact */
+[data-testid="stSidebarContent"] > div:first-child > small,
+.st-emotion-cache-pkbazv, .eyeqlp51 {{ display: none !important; }}
+section[data-testid="stSidebar"] > div > div > div > div:first-child small {{ display:none !important; }}
+/* Claude-like sidebar */
+.nexus-new-chat {{
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; margin: 8px 8px 4px;
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 10px; cursor: pointer; transition: var(--transition);
+    font-family: var(--fb); font-size: 13px; font-weight: 600; color: var(--tx);
+    width: calc(100% - 16px);
+}}
+.nexus-new-chat:hover {{ background: var(--s2); border-color: var(--border-h); }}
+.nexus-new-chat-icon {{ font-size: 16px; }}
+.nexus-section-label {{
+    font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--tx-3); font-family: var(--fb);
+    padding: 14px 14px 6px; display: block;
+}}
+.nexus-chat-item {{
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 14px; margin: 1px 6px; border-radius: 8px;
+    cursor: pointer; transition: background .12s;
+    font-family: var(--fs); font-size: 13px; color: var(--tx-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}}
+.nexus-chat-item:hover {{ background: var(--s2); color: var(--tx); }}
+.nexus-chat-item.active {{ background: var(--s2); color: var(--tx); }}
+.nexus-chat-icon {{ font-size: 14px; flex-shrink: 0; opacity: .6; }}
+.nexus-chat-title {{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }}
+.nexus-settings-btn {{
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; margin: 4px 6px;
+    border-radius: 8px; cursor: pointer; transition: background .12s;
+    font-family: var(--fb); font-size: 13px; color: var(--tx-2);
+}}
+.nexus-settings-btn:hover {{ background: var(--s2); color: var(--tx); }}
+.nexus-settings-panel {{
+    background: var(--s1); border: 1px solid var(--border);
+    border-radius: var(--r); margin: 6px 8px; padding: 14px;
+}}
+.nexus-user-row {{
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; margin: 4px 6px;
+    border-top: 1px solid var(--border); margin-top: 8px;
+    font-family: var(--fb); font-size: 13px; color: var(--tx-2);
+}}
+.nexus-avatar {{
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent-glow); border: 1px solid var(--accent-ring);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--accent); flex-shrink: 0;
+}}
+[data-testid="stTextInput"] input {{ padding-right: 12px !important; }}
+.nova-bub-ai {{ cursor: pointer; user-select: none; -webkit-user-select: none; }}
+.nova-ctx-menu {{
+    position: fixed; background: var(--s2); border: 1px solid var(--border-h);
+    border-radius: 12px; padding: 6px 0; z-index: 99999;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    font-family: var(--fb); min-width: 160px;
+    animation: ctxIn .15s ease;
+}}
+@keyframes ctxIn {{ from{{opacity:0;transform:scale(.95);}} to{{opacity:1;transform:scale(1);}} }}
+.nova-ctx-item {{
+    padding: 11px 18px; cursor: pointer; font-size: 13px;
+    color: var(--tx); display: flex; align-items: center; gap: 10px;
+    transition: background .12s;
+}}
+.nova-ctx-item:hover {{ background: var(--s3); }}
+.nova-ctx-item:active {{ background: var(--border); }}
+.nova-ctx-sep {{ height: 1px; background: var(--border); margin: 4px 0; }}
+.nova-copy-toast {{
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: var(--accent); color: #0d0d10; padding: 7px 20px;
+    border-radius: 20px; font-size: 12px; font-weight: 700;
+    font-family: var(--fb); z-index: 999999; letter-spacing: .04em;
+    animation: toastIn .2s ease;
+}}
+@keyframes toastIn {{ from{{opacity:0;transform:translateX(-50%) translateY(10px);}} to{{opacity:1;transform:translateX(-50%) translateY(0);}} }}
 </style>
 """
 
@@ -278,10 +472,10 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
 PERSONAS = {
     "NEXUS Default": (
         "You are NEXUS — a sharp, thoughtful AI assistant. "
-        "You're not robotic or overly formal. Talk like a knowledgeable friend who knows a lot. "
+        "You\'re not robotic or overly formal. Talk like a knowledgeable friend who knows a lot. "
         "Be direct, clear, sometimes a little witty, but always genuinely helpful. "
         "Give real answers, not fluffy ones. Use Markdown when it helps readability. "
-        "Respond in the same language the user writes in. "
+        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi — respond in Hindi. If Hinglish (Hindi+English mix) — respond in Hinglish. If English — respond in English. Never switch languages unless user asks. "
         "Never mention which AI model or company powers you."
     ),
     "Coding Expert": (
@@ -290,6 +484,7 @@ PERSONAS = {
         "Always provide clean, production-ready code with comments. "
         "Proactively point out bugs and edge cases. "
         "Use Markdown code blocks with language tags for all code. "
+        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi — respond in Hindi. If Hinglish (Hindi+English mix) — respond in Hinglish. If English — respond in English. Never switch languages unless user asks. "
         "Never mention which AI model or company powers you."
     ),
     "Data Analyst": (
@@ -297,6 +492,7 @@ PERSONAS = {
         "Specialize in data analysis, statistics, business intelligence, and visualization. "
         "Provide structured, numbered insights. Use tables in Markdown where applicable. "
         "Always quantify findings and suggest data-driven next steps. "
+        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi — respond in Hindi. If Hinglish (Hindi+English mix) — respond in Hinglish. If English — respond in English. Never switch languages unless user asks. "
         "Never mention which AI model or company powers you."
     ),
     "Teacher / ELI5": (
@@ -304,6 +500,7 @@ PERSONAS = {
         "Explain everything as simply as possible — like teaching a curious 12-year-old. "
         "Use analogies, real-world examples, and step-by-step breakdowns. "
         "Avoid jargon unless you immediately explain it. Make learning enjoyable. "
+        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi — respond in Hindi. If Hinglish (Hindi+English mix) — respond in Hinglish. If English — respond in English. Never switch languages unless user asks. "
         "Never mention which AI model or company powers you."
     ),
     "Creative Writer": (
@@ -311,6 +508,7 @@ PERSONAS = {
         "Write with vivid language, compelling narrative, and strong voice. "
         "Adapt tone from dark/serious to light/playful as needed. "
         "Always produce polished, publication-ready creative content. "
+        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi — respond in Hindi. If Hinglish (Hindi+English mix) — respond in Hinglish. If English — respond in English. Never switch languages unless user asks. "
         "Never mention which AI model or company powers you."
     ),
 }
@@ -332,80 +530,209 @@ PROMPT_TEMPLATES = [
 # ═══════════════════════════════════════════════════════
 _BLACKLIST: dict = {
     "terrorism": [
-        "terrorist","terrorism","jihad","jihadist","isis","isil","al-qaeda",
-        "al qaeda","taliban","naxal","naxalite","maoists","boko haram",
-        "ied","improvised explosive","suicide bomber","suicide vest",
-        "bomb making","bomb recipe","how to make a bomb","detonate",
-        "detonator","car bomb","letter bomb","pipe bomb",
+        # Groups & ideology
+        "isis","isil","al qaeda","al-qaeda","taliban","boko haram","hezbollah",
+        "hamas attack","lashkar","jaish","hizbul","al shabaab","wagner group attack",
+        "jihadist attack","holy war recruit","terrorist recruit","radicalize",
+        "join isis","join taliban","terror cell","terror network","sleeper cell",
+        # Attacks & planning
+        "suicide bomber","suicide vest","suicide attack plan",
+        "bomb making","bomb recipe","how to make a bomb","make a bomb",
+        "build a bomb","assemble a bomb","improvised explosive device",
+        "ied recipe","ied construction","detonator","car bomb","pipe bomb",
+        "letter bomb","pressure cooker bomb","nail bomb","truck attack plan",
+        "mass shooting plan","attack planning","attack government","attack civilians",
+        "blow up building","blow up school","blow up mosque","blow up temple",
+        "blow up church","blow up hospital","attack police","kill officers",
+        "assassinate","assassination plan","kill politician","kill president",
+        "hostage taking plan","kidnapping plan","ransom demand",
     ],
     "weapons": [
-        "gun mechanism","how to make a gun","3d print gun","3d printed gun",
-        "ghost gun","untraceable firearm","silencer diy","suppressor diy",
-        "chemical weapon","nerve agent","sarin","vx nerve","mustard gas",
-        "poison gas","cyanide recipe","ricin recipe","how to make poison",
-        "bioweapon","anthrax recipe","weaponize","hollow point ammunition",
+        # Firearms illegal
+        "how to make a gun","make a gun at home","homemade gun","zip gun",
+        "3d printed gun","3d print gun","ghost gun","untraceable firearm",
+        "convert pistol to automatic","convert semi to full auto",
+        "illegal silencer","suppressor diy","silencer diy",
+        "how to get gun without license","buy gun illegally",
+        # Explosives
+        "make explosives","homemade explosives","explosive recipe",
+        "fertilizer bomb","ammonium nitrate bomb","tnt recipe",
+        "c4 explosive","plastic explosive","semtex","thermite recipe",
+        "molotov cocktail recipe","incendiary device",
+        # Chemical & bio
+        "chemical weapon","weaponize chemical","nerve agent","sarin","vx nerve",
+        "mustard gas","chlorine gas weapon","phosgene","tabun",
+        "cyanide recipe","ricin recipe","how to make poison","poison weapon",
+        "bioweapon","anthrax recipe","weaponize bacteria","weaponize virus",
+        "plague weapon","ebola weapon","smallpox weapon",
+        # Radiological
+        "dirty bomb","radiological weapon","nuclear device","nuclear bomb recipe",
     ],
     "cybercrime": [
-        "hacking tool","hack into","how to hack","ddos attack","ddos script",
-        "botnet","sql injection script","sql injection attack",
-        "phishing page code","phishing kit","keylogger code","keylogger script",
-        "bypass security","bypass authentication","bypass 2fa",
-        "exploit vulnerability","zero day exploit","malware code",
-        "ransomware code","rootkit","backdoor script","rat tool",
-        "credential stuffing","brute force script","password cracker",
+        # Malware creation
+        "write malware","create malware","malware code","malware script",
+        "ransomware code","ransomware script","create ransomware","write ransomware",
+        "virus code","trojan code","worm code","spyware code",
+        "rootkit","rootkit install","rootkit script",
+        "backdoor script","create backdoor","inject backdoor",
+        "rat tool","remote access trojan","create rat","write rat",
+        # Attack tools
+        "ddos script","ddos tool","ddos attack tool","launch ddos",
+        "botnet script","create botnet","botnet setup",
+        "exploit code","write exploit","create exploit","0day exploit code",
+        "buffer overflow exploit","shell injection code",
+        # Credential theft
+        "phishing page code","phishing kit","phishing site code",
+        "credential harvester","cookie stealer","session hijack script",
+        "keylogger code","keylogger script","write keylogger","build keylogger",
+        "password stealer","credential stuffing tool","brute force tool",
+        "password cracker tool","hash cracker","rainbow table crack",
+        # Account takeover
+        "hack account","hack someone account","hack instagram","hack facebook",
+        "hack whatsapp","hack gmail","hack snapchat","hack wifi password",
+        "steal account","take over account","bypass otp","bypass 2fa hack",
+        "sim swap hack","account takeover script",
+        # System intrusion
+        "hack into server","hack into database","hack into website",
+        "sql injection attack","sqli attack","blind sql injection attack",
+        "remote code execution attack","rce exploit","privilege escalation exploit",
+        "penetrate network illegally","network intrusion script",
     ],
-    "adult_content": [
-        "porn","pornography","pornographic","nsfw","xxx",
-        "child abuse","child sexual","csam","lolicon","shotacon",
-        "sexual violence","rape scene","explicit sex","explicit sexual",
-        "nude image","nude photo","onlyfans leak",
+    "child_safety": [
+        # CSAM
+        "child abuse","child sexual abuse","csam","child pornography",
+        "minor pornography","underage pornography","teen pornography",
+        "child nude","minor nude","underage nude","nude minor",
+        "child explicit","minor explicit","underage explicit",
+        # Fictional but harmful
+        "lolicon","shotacon","shota","loli sexual","loli explicit",
+        "minor hentai","underage hentai",
+        # Grooming
+        "groom child","grooming child","groom minor","grooming minor",
+        "seduce minor","seduce child","gain trust child","befriend child for sex",
+        "child meeting stranger","meet child secretly",
     ],
     "hate_speech": [
+        # Violence against groups
         "kill all muslims","kill all hindus","kill all jews","kill all christians",
-        "hate muslims","hate hindus","hate christians","hate jews",
-        "casteism","dalit slur","racial slur","n-word",
-        "communal violence","ethnic cleansing","genocide plan",
-        "religious riot","incite riot","lynch mob",
-        "white supremacy","neo nazi","nazi propaganda",
+        "kill all sikhs","kill all blacks","kill all whites","kill minorities",
+        "death to muslims","death to hindus","death to jews","death to christians",
+        "exterminate muslims","exterminate hindus","exterminate jews",
+        # Genocide & ethnic violence
+        "ethnic cleansing","genocide plan","mass killing plan",
+        "religious riot plan","communal riot plan","incite communal violence",
+        "incite riot","lynch mob","mob lynching plan",
+        "caste violence","dalit violence","minority attack",
+        # Supremacy
+        "white supremacy","white power manifesto","aryan supremacy",
+        "neo nazi","nazi propaganda","third reich","heil hitler propaganda",
+        "master race","inferior race","subhuman race",
+        # Targeted harassment
+        "doxxing plan","expose personal info to harm","swatting plan",
+        "coordinate harassment","mass report campaign to silence",
     ],
     "self_harm": [
-        "suicide","how to kill myself","how to end my life","want to die",
-        "kill myself","self harm","self-harm","cut myself",
-        "overdose on pills","how many pills to die","hanging myself",
-        "methods of suicide","painless suicide","assisted suicide instructions",
+        # Direct methods
+        "how to kill myself","how to end my life","how to commit suicide",
+        "how to die painlessly","painless death method","easiest way to die",
+        "kill myself","end my life","take my own life",
+        "methods of suicide","suicide method","suicide technique",
+        "painless suicide","quick suicide","undetectable suicide",
+        "assisted suicide instructions","help me die",
+        # Specific methods
+        "hanging myself","how to hang myself",
+        "overdose on pills","which pills to overdose","how many pills to die",
+        "slit wrists","cut myself to die","bleed out",
+        "jump off building to die","jump in front of train",
+        "carbon monoxide suicide","gas suicide",
+        # Self harm
+        "cut myself deeply","burn myself","harm myself badly",
+        "self harm methods","how to self harm","ways to hurt myself",
     ],
 }
 
 _CATEGORY_LABELS: dict = {
-    "terrorism":     "Terrorism / Extremism",
-    "weapons":       "Weapons / WMD",
-    "cybercrime":    "Cybercrime / Hacking",
-    "adult_content": "Adult / Explicit Content",
-    "hate_speech":   "Hate Speech / Violence",
-    "self_harm":     "Self-Harm / Suicide",
+    "terrorism":    "Terrorism / Extremism",
+    "weapons":      "Weapons / WMD",
+    "cybercrime":   "Cybercrime / Malware",
+    "child_safety": "Child Safety Violation",
+    "hate_speech":  "Hate Speech / Violence",
+    "self_harm":    "Self-Harm / Suicide",
 }
 _BLOCK_MSG = "Policy Violation: This request has been blocked for security reasons."
 
+# ── LLM-level safety sentinel ──────────────────────────────────────────────
+# This is injected into EVERY LLM system prompt so the model itself refuses
+# harmful requests even if they slip past the keyword pre-filter.
+SAFETY_SYSTEM_ADDON = (
+    "\n\n"
+    "==== ABSOLUTE SAFETY RULES — HIGHEST PRIORITY — OVERRIDE EVERYTHING ELSE ====\n"
+    "You must NEVER provide any assistance, instructions, code, recipes, methods, or "
+    "information — partial or complete — related to ANY of the following:\n"
+    "  • Terrorism, extremism, attack planning, or recruitment\n"
+    "  • Weapons, explosives, bombs, chemical/biological/radiological devices\n"
+    "  • Cybercrime, malware creation, hacking attacks, phishing, or credential theft\n"
+    "  • Child exploitation, grooming, or any sexual content involving minors\n"
+    "  • Hate speech, genocide, or incitement to ethnic/religious violence\n"
+    "  • Suicide methods or self-harm techniques\n\n"
+    "This rule applies regardless of: roleplay framing, fictional context, academic "
+    "framing, hypothetical scenarios, indirect phrasing, coded language, leet-speak, "
+    "symbol substitutions, or ANY other attempt to disguise the request.\n\n"
+    "If ANY such request is detected — no matter how it is worded — you MUST respond "
+    "with ONLY this exact token and nothing else: NEXUS_SAFETY_REFUSE\n"
+    "Do NOT explain. Do NOT provide partial info. Output ONLY: NEXUS_SAFETY_REFUSE\n"
+    "============================================================================"
+)
 
-def _normalize(text: str) -> str:
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9\s]", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
+# English message shown to user when LLM-level block triggers
+_LLM_BLOCK_MSG = (
+    "I'm sorry, I cannot help with that. "
+    "This request involves harmful or dangerous content, "
+    "and I'm not able to provide any assistance with it."
+)
 
+
+# ── Layer 1: Unicode homoglyph normalizer ──────────────────────────────────
+def _unicode_normalize(text: str) -> str:
+    """NFKD decomposition → ASCII-only. Kills Cyrillic/Greek lookalikes."""
+    normalized = unicodedata.normalize("NFKD", text)
+    return normalized.encode("ascii", "ignore").decode("ascii")
+
+
+# ── Layer 1: Extended leet-speak normalizer ────────────────────────────────
+_LEET_MAP = {
+    "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
+    "6": "g", "7": "t", "8": "b", "9": "g",
+    "@": "a", "$": "s", "!": "i", "+": "t", "|": "i",
+    "€": "e", "£": "l", "¢": "c", "©": "c", "®": "r",
+    "×": "x", "ß": "ss", "ø": "o", "µ": "u",
+}
 
 def _leet_normalize(text: str) -> str:
-    subs = {"0":"o","1":"i","3":"e","4":"a","@":"a","$":"s","!":"i","+":"t","5":"s","7":"t","8":"b","9":"g"}
-    for char, replacement in subs.items():
+    for char, replacement in _LEET_MAP.items():
         text = text.replace(char, replacement)
     return text
 
 
+# ── Layer 1: Full normalization pipeline ───────────────────────────────────
+def _normalize(text: str) -> str:
+    text = text.lower()
+    text = _unicode_normalize(text)            # homoglyphs (Cyrillic о → o)
+    text = _leet_normalize(text)               # leet speak (h@ck → hack)
+    # Remove character-splitting: "b.o.m.b" → "bomb", "b o m b" → "bomb"
+    text = re.sub(r"(?<=[a-z])[.\-_*\s]+(?=[a-z])", "", text)
+    text = re.sub(r"[^a-z0-9\s]", " ", text)  # remaining specials → space
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+# ── Layer 1: Keyword pre-filter ────────────────────────────────────────────
 def is_safe(prompt: str) -> tuple:
-    cleaned = _normalize(_leet_normalize(prompt))
+    cleaned = _normalize(prompt)
     for category, terms in _BLACKLIST.items():
         for term in terms:
-            pattern = r"\b" + re.escape(term) + r"\b"
+            normalized_term = _normalize(term)
+            pattern = r"\b" + re.escape(normalized_term) + r"\b"
             if re.search(pattern, cleaned):
                 return False, category
     return True, None
@@ -490,13 +817,31 @@ def _call_groq(api_key: str, messages: list, model: str, temperature: float, str
 
 
 def _call_with_fallback(api_key: str, messages: list, primary_model: str, temperature: float) -> str:
-    """Try primary model, then fallback chain."""
+    """Try primary model, then fallback chain. Injects safety into all system prompts."""
+    # ── Inject safety addon into every system message (Layer 2) ──────────
+    safe_messages = []
+    has_system = False
+    for msg in messages:
+        if msg["role"] == "system":
+            safe_messages.append({"role": "system", "content": msg["content"] + SAFETY_SYSTEM_ADDON})
+            has_system = True
+        else:
+            safe_messages.append(msg)
+    if not has_system:
+        safe_messages.insert(0, {"role": "system", "content": SAFETY_SYSTEM_ADDON.strip()})
+
     models_to_try = [primary_model] + [m for m in FALLBACK_MODELS if m != primary_model]
     last_error = ""
     for model in models_to_try:
         try:
-            resp = _call_groq(api_key, messages, model, temperature)
-            return resp.choices[0].message.content
+            resp = _call_groq(api_key, safe_messages, model, temperature)
+            content = resp.choices[0].message.content
+
+            # ── Layer 2 post-check: LLM refused with sentinel ─────────────
+            if content and "NEXUS_SAFETY_REFUSE" in content.strip():
+                return _LLM_BLOCK_MSG
+
+            return content
         except Exception as e:
             last_error = str(e)
             if "invalid_api_key" in last_error.lower() or "authentication" in last_error.lower():
@@ -711,7 +1056,9 @@ def analyze_image(
         client = _groq_client(api_key)
         response = client.chat.completions.create(
             model=VISION_MODEL,
-            messages=[{
+            messages=[
+                {"role": "system", "content": "You are a helpful image analysis assistant." + SAFETY_SYSTEM_ADDON},
+                {
                 "role": "user",
                 "content": [
                     {"type": "text", "text": prompt_text},
@@ -721,7 +1068,10 @@ def analyze_image(
             temperature=temperature,
             max_tokens=1024,
         )
-        return response.choices[0].message.content
+        result_content = response.choices[0].message.content
+        if result_content and "NEXUS_SAFETY_REFUSE" in result_content.strip():
+            return _LLM_BLOCK_MSG
+        return result_content
 
     except Exception as e:
         err = str(e)
@@ -752,10 +1102,19 @@ def analyze_youtube(
         video_id = match.group(1)
 
         try:
-            transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=["en", "hi", "en-IN"])
+            # youtube-transcript-api >= 0.6.0: instance method
+            ytt = YouTubeTranscriptApi()
+            transcript_list = ytt.get_transcript(video_id, languages=["en", "hi", "en-IN"])
+        except TypeError:
+            # Fallback for older library versions (class method)
+            try:
+                transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=["en", "hi", "en-IN"])
+            except Exception as e2:
+                return f"❌ Transcript fetch nahi hua: {str(e2)[:80]}"
         except NoTranscriptFound:
             try:
-                transcripts = YouTubeTranscriptApi.list_transcripts(video_id)
+                ytt2 = YouTubeTranscriptApi()
+                transcripts = ytt2.list(video_id)
                 transcript_list = transcripts.find_generated_transcript(["en", "hi"]).fetch()
             except Exception:
                 return "❌ Is video mein transcript available nahi hai."
@@ -912,14 +1271,19 @@ def _init_state():
     defaults = {
         "app_mode":        "landing",
         "chat_history":    [INITIAL_GREETING],
+        "sessions":        [],          # saved chat sessions
         "input_counter":   0,
         "query_count":     0,
+        "user_api_key":    "",      # Kept for compatibility
+        "locked":          False,   # Whether login wall is shown
         "incognito":       False,
         "theme":           "Nova Crystal",
         "persona":         "NEXUS Default",
         "model_tier":      "Ultra",
+        "temperature":     0.7,
         "rate_timestamps": [],
         "copy_states":     {},
+        "show_settings":   False,
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -930,6 +1294,116 @@ _init_state()
 
 theme_vars = THEME_VARS.get(st.session_state.theme, THEME_VARS["Nova Crystal"])
 st.markdown(BASE_CSS.format(theme_vars=theme_vars), unsafe_allow_html=True)
+
+# ─── Long-press context menu JS ───
+st.markdown("""
+<script>
+(function() {
+    let pressTimer = null;
+    let activeMenu = null;
+    let targetText = '';
+
+    function removeMenu() {
+        if (activeMenu) { activeMenu.remove(); activeMenu = null; }
+    }
+
+    function showToast(msg) {
+        document.querySelectorAll('.nova-copy-toast').forEach(e => e.remove());
+        const t = document.createElement('div');
+        t.className = 'nova-copy-toast';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 1600);
+    }
+
+    function showMenu(x, y, text) {
+        removeMenu();
+        const menu = document.createElement('div');
+        menu.className = 'nova-ctx-menu';
+
+        // Position - keep inside viewport
+        const mx = Math.min(x, window.innerWidth - 175);
+        const my = Math.min(y, window.innerHeight - 120);
+        menu.style.left = mx + 'px';
+        menu.style.top = my + 'px';
+
+        const items = [
+            { icon: '📋', label: 'Copy', action: () => {
+                navigator.clipboard.writeText(text).then(() => showToast('✓ Copied!'));
+                removeMenu();
+            }},
+            { sep: true },
+            { icon: '✏️', label: 'Edit in Chat', action: () => {
+                const inp = document.querySelector('[data-testid="stTextInput"] input');
+                if (inp) {
+                    inp.focus();
+                    inp.value = text.substring(0, 200);
+                    inp.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                removeMenu();
+            }},
+        ];
+
+        items.forEach(item => {
+            if (item.sep) {
+                const sep = document.createElement('div');
+                sep.className = 'nova-ctx-sep';
+                menu.appendChild(sep);
+            } else {
+                const div = document.createElement('div');
+                div.className = 'nova-ctx-item';
+                div.innerHTML = '<span>' + item.icon + '</span><span>' + item.label + '</span>';
+                div.onclick = (e) => { e.stopPropagation(); item.action(); };
+                menu.appendChild(div);
+            }
+        });
+
+        document.body.appendChild(menu);
+        activeMenu = menu;
+
+        setTimeout(() => {
+            document.addEventListener('click', removeMenu, { once: true });
+            document.addEventListener('touchstart', removeMenu, { once: true });
+        }, 50);
+    }
+
+    function vibrate() {
+        if (navigator.vibrate) navigator.vibrate(40);
+    }
+
+    function attachHandlers() {
+        document.querySelectorAll('.nova-bub-ai').forEach(bubble => {
+            if (bubble._lpAttached) return;
+            bubble._lpAttached = true;
+
+            // Touch (mobile)
+            bubble.addEventListener('touchstart', (e) => {
+                const text = bubble.innerText || bubble.textContent || '';
+                pressTimer = setTimeout(() => {
+                    vibrate();
+                    const t = e.touches[0];
+                    showMenu(t.clientX - 80, t.clientY - 10, text.trim());
+                }, 550);
+            }, { passive: true });
+
+            bubble.addEventListener('touchend',  () => clearTimeout(pressTimer));
+            bubble.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
+            // Desktop right-click
+            bubble.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const text = bubble.innerText || bubble.textContent || '';
+                showMenu(e.clientX, e.clientY, text.trim());
+            });
+        });
+    }
+
+    // Run on load and after new messages appear
+    attachHandlers();
+    setInterval(attachHandlers, 1200);
+})();
+</script>
+""", unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════
@@ -968,153 +1442,223 @@ def render_landing_page():
 # ═══════════════════════════════════════════
 #  SIDEBAR
 # ═══════════════════════════════════════════
-def render_sidebar():
-    with st.sidebar:
-        st.markdown("""
-        <div class="nova-sidebar-brand">
-            <div class="nova-sb-logo">
-                <div class="nova-sb-mark">N</div>
-                <div class="nova-sb-name">NEXUS</div>
+def render_limit_popup():
+    """Show a friendly limit-reached popup — no API key, just start a new chat."""
+    limit = FREE_MSG_LIMIT
+
+    _, center, _ = st.columns([1, 2, 1])
+    with center:
+        st.markdown(f"""
+        <div style="text-align:center;padding:60px 0 28px;">
+            <div style="width:64px;height:64px;border-radius:16px;
+                        background:var(--accent-glow);border:1px solid var(--accent-ring);
+                        display:inline-flex;align-items:center;justify-content:center;
+                        font-size:28px;margin-bottom:22px;">✦</div>
+            <div style="display:inline-block;background:var(--accent-glow);
+                        border:1px solid var(--accent-ring);border-radius:20px;
+                        padding:4px 16px;font-family:var(--fb);font-size:10px;
+                        font-weight:700;color:var(--accent);letter-spacing:.1em;
+                        text-transform:uppercase;margin-bottom:18px;display:block;">
+                Session Limit Reached
             </div>
-            <div class="nova-sb-pill">
-                <div class="nova-sb-dot"></div>
-                System Online
+            <div style="font-family:var(--fb);font-size:24px;font-weight:800;
+                        color:var(--tx);letter-spacing:-.03em;margin-bottom:14px;">
+                You've used {limit} messages
+            </div>
+            <div style="font-family:var(--fs);font-size:14px;color:var(--tx-2);
+                        line-height:1.85;max-width:340px;margin:0 auto 32px;">
+                No worries — just start a fresh session.<br>
+                Click <strong style="color:var(--accent);">New Chat</strong> to reset
+                and continue enjoying NEXUS. ✨
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Load key from secrets
-        secret_key = ""
+        # Progress bar — full
+        st.markdown("""
+        <div style="max-width:300px;margin:0 auto 32px;background:var(--s2);
+                    border-radius:8px;height:5px;overflow:hidden;">
+            <div style="height:100%;width:100%;border-radius:8px;
+                        background:linear-gradient(90deg,var(--accent),var(--accent-h));"></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Single CTA button
+        if st.button("✦  New Chat — Continue Free", use_container_width=True,
+                     type="primary", key="limit_new_chat_btn"):
+            _save_current_session()
+            st.session_state.chat_history  = [INITIAL_GREETING]
+            st.session_state.copy_states   = {}
+            st.session_state.input_counter += 1
+            st.session_state.query_count   = 0
+            st.session_state.locked        = False
+            st.toast("✦ Fresh session started! Enjoy NEXUS.", icon="✅")
+            st.rerun()
+
+        st.markdown(
+            '<div style="text-align:center;font-size:11px;color:var(--tx-3);'
+            'font-family:var(--fb);margin-top:18px;line-height:1.7;">'
+            'Your conversation history is saved in the sidebar.<br>'
+            'New chat gives you another full session — completely free.'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    st.stop()
+
+
+def _save_current_session():
+    """Save current chat to sessions history."""
+    if len(st.session_state.chat_history) <= 1:
+        return
+    title = "New Chat"
+    for msg in st.session_state.chat_history:
+        if msg["role"] == "user":
+            title = msg["content"][:38] + ("\u2026" if len(msg["content"]) > 38 else "")
+            break
+    session = {
+        "id":       datetime.now().strftime("%Y%m%d%H%M%S%f"),
+        "title":    title,
+        "messages": list(st.session_state.chat_history),
+        "time":     datetime.now().strftime("%b %d, %H:%M"),
+    }
+    st.session_state.sessions = [session] + [
+        s for s in st.session_state.sessions if s["id"] != session.get("id")
+    ][:19]
+
+
+def render_sidebar():
+    with st.sidebar:
+        # Header
+        st.markdown("""
+        <div style="padding:14px 14px 6px; display:flex; align-items:center;
+                    justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:9px;">
+                <div class="nova-sb-mark">N</div>
+                <span style="font-family:var(--fb);font-size:16px;font-weight:700;
+                             color:var(--tx);letter-spacing:-.03em;">NEXUS</span>
+            </div>
+            <div class="nova-sb-pill"><div class="nova-sb-dot"></div>Online</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # New Chat
+        if st.button("\u270f\ufe0f  New Chat", use_container_width=True, key="new_chat_btn"):
+            _save_current_session()
+            st.session_state.chat_history  = [INITIAL_GREETING]
+            st.session_state.copy_states   = {}
+            st.session_state.input_counter += 1
+            st.session_state.query_count   = 0
+            st.session_state.locked        = False
+            st.rerun()
+
+        # Chat History
+        if st.session_state.sessions:
+            st.markdown('<span class="nexus-section-label">Recents</span>', unsafe_allow_html=True)
+            for sess in st.session_state.sessions[:15]:
+                c1, c2 = st.columns([6, 1])
+                with c1:
+                    if st.button(
+                        f"\U0001f4ac  {sess['title']}",
+                        key=f"sess_{sess['id']}",
+                        use_container_width=True,
+                        help=sess["time"]
+                    ):
+                        _save_current_session()
+                        st.session_state.chat_history  = list(sess["messages"])
+                        st.session_state.input_counter += 1
+                        st.rerun()
+                with c2:
+                    if st.button("\u2715", key=f"del_{sess['id']}"):
+                        st.session_state.sessions = [s for s in st.session_state.sessions if s["id"] != sess["id"]]
+                        st.rerun()
+
+        st.markdown("<div style='height:1px;background:var(--border);margin:10px 8px;'></div>",
+                    unsafe_allow_html=True)
+
+        # Settings toggle
+        show_settings = st.toggle("\u2699\ufe0f  Settings", value=st.session_state.show_settings, key="settings_toggle")
+        st.session_state.show_settings = show_settings
+
+        # Secrets key always loaded silently
+        _secret_key = ""
         try:
-            secret_key = st.secrets.get("GROQ_API_KEY", "")
+            _secret_key = st.secrets.get("GROQ_API_KEY", "")
         except Exception:
             pass
 
-        st.markdown('<div class="nova-sb-divider"><span>API Config</span></div>', unsafe_allow_html=True)
-        api_key = st.text_input(
-            "Neural Engine Key",
-            value=secret_key,
-            type="password",
-            placeholder="gsk_••••••••••••••••",
-            help="Set GROQ_API_KEY in Streamlit Secrets for automatic loading."
-        )
-        status_color = "#c8a778" if api_key else "#d95555"
-        status_text  = "Key Active ✓" if api_key else "No Key — Enter Above"
-        st.markdown(
-            f'<div class="nova-api-status" style="color:{status_color};">◈ {status_text}</div>',
-            unsafe_allow_html=True
-        )
+        if show_settings:
+            # api_key always comes from server secret — no user input
+            api_key = _secret_key
 
-        if api_key:
-            if st.button("✓  Validate Key", use_container_width=True, key="validate_key"):
-                with st.spinner("Checking..."):
-                    is_valid, msg = validate_api_key(api_key)
-                if is_valid:
-                    st.toast(f"✅ {msg}", icon="✅")
-                else:
-                    st.toast(f"❌ {msg}", icon="❌")
+            # Theme
+            st.markdown('<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx-3);font-family:var(--fb);margin-bottom:6px;">\U0001f3a8 Theme</div>', unsafe_allow_html=True)
+            theme_map = {"Nova Crystal": "\U0001f311 Nova Crystal", "Arctic Frost": "\u2744\ufe0f Arctic Frost", "Crimson Noir": "\U0001f534 Crimson Noir"}
+            theme = st.radio("", options=list(THEME_VARS.keys()),
+                format_func=lambda x: theme_map.get(x, x),
+                index=list(THEME_VARS.keys()).index(st.session_state.theme),
+                key="theme_radio", label_visibility="collapsed")
+            if theme != st.session_state.theme:
+                st.session_state.theme = theme
+                st.rerun()
 
-        # Intelligence Tier
-        st.markdown('<div class="nova-sb-divider"><span>Intelligence Tier</span></div>', unsafe_allow_html=True)
-        model_tier = st.selectbox(
-            "Engine Mode",
-            options=["Ultra", "Balanced", "Fast"],
-            index=["Ultra", "Balanced", "Fast"].index(st.session_state.model_tier),
-            key="model_tier_select"
-        )
-        st.session_state.model_tier = model_tier
-        tier_meta = {
-            "Ultra":    ("Max intelligence · Best results",  "#c8a778"),
-            "Balanced": ("Great balance of speed & quality", "#a8c878"),
-            "Fast":     ("Lightning fast · Quick answers",   "#7c9ec8"),
-        }
-        meta_text, meta_color = tier_meta.get(model_tier, ("", "#888"))
-        st.markdown(f'<div class="nova-model-meta" style="color:{meta_color};">◈ {meta_text}</div>', unsafe_allow_html=True)
+            st.divider()
 
-        # Persona
-        st.markdown('<div class="nova-sb-divider"><span>AI Persona</span></div>', unsafe_allow_html=True)
-        persona = st.selectbox(
-            "Active Persona",
-            options=list(PERSONAS.keys()),
-            index=list(PERSONAS.keys()).index(st.session_state.persona),
-            key="persona_select"
-        )
-        st.session_state.persona = persona
-        persona_desc = {
-            "NEXUS Default":   "◈ Balanced general assistant",
-            "Coding Expert":   "◈ Senior software engineer",
-            "Data Analyst":    "◈ Data & insights specialist",
-            "Teacher / ELI5":  "◈ Simple explanations mode",
-            "Creative Writer": "◈ Storytelling & copywriting",
-        }
-        st.markdown(
-            f'<div class="nova-creativity-tag">{persona_desc.get(persona, "")}</div>',
-            unsafe_allow_html=True
-        )
+            # Model + Persona + Temp
+            model_tier = st.selectbox("\U0001f9e0 AI Mode",
+                options=["Ultra", "Balanced", "Fast"],
+                index=["Ultra", "Balanced", "Fast"].index(st.session_state.model_tier),
+                key="model_tier_select")
+            st.session_state.model_tier = model_tier
 
-        # Temperature
-        st.markdown('<div class="nova-sb-divider"><span>Parameters</span></div>', unsafe_allow_html=True)
-        temperature = st.slider("Response Style", min_value=0.0, max_value=1.0, value=0.7, step=0.05)
-        creativity_label = (
-            "Precise & Factual" if temperature < 0.3
-            else "Balanced" if temperature < 0.6
-            else "Creative & Expressive"
-        )
-        st.markdown(f'<div class="nova-creativity-tag">◈ {creativity_label}</div>', unsafe_allow_html=True)
+            persona = st.selectbox("\U0001f3ad Persona",
+                options=list(PERSONAS.keys()),
+                index=list(PERSONAS.keys()).index(st.session_state.persona),
+                key="persona_select")
+            st.session_state.persona = persona
 
-        # Theme
-        st.markdown('<div class="nova-sb-divider"><span>Theme</span></div>', unsafe_allow_html=True)
-        theme = st.radio(
-            "Visual Theme",
-            options=list(THEME_VARS.keys()),
-            index=list(THEME_VARS.keys()).index(st.session_state.theme),
-            key="theme_radio",
-            horizontal=False,
-        )
-        if theme != st.session_state.theme:
-            st.session_state.theme = theme
-            st.rerun()
+            temperature = st.slider("\U0001f39a\ufe0f Response Style", 0.0, 1.0,
+                value=st.session_state.temperature, step=0.05, key="temp_slider")
+            st.session_state.temperature = temperature
+            lbl = "Precise" if temperature < 0.3 else "Balanced" if temperature < 0.6 else "Creative"
+            st.markdown(f'<div style="font-size:10px;color:var(--tx-3);font-family:var(--fb);margin-top:-6px;">{lbl}</div>',
+                        unsafe_allow_html=True)
 
-        # Stats
-        st.markdown('<div class="nova-sb-divider"><span>Quick Stats</span></div>', unsafe_allow_html=True)
-        c1, c2 = st.columns(2)
-        with c1: st.metric("Queries", str(st.session_state.query_count))
-        with c2: st.metric("Turns",   str(len(st.session_state.chat_history)))
+            st.divider()
 
-        # Session
-        st.markdown('<div class="nova-sb-divider"><span>Session</span></div>', unsafe_allow_html=True)
-        if st.button("↩  Return to Landing", use_container_width=True, key="back_landing"):
-            st.session_state.app_mode = "landing"
-            st.rerun()
-        if st.button("⟳  Clear Session", use_container_width=True, key="clear_session"):
-            for k in list(st.session_state.keys()):
-                del st.session_state[k]
-            st.rerun()
+            incognito = st.toggle("\U0001f575\ufe0f Incognito", value=st.session_state.incognito, key="incognito_toggle")
+            st.session_state.incognito = incognito
 
-        # Privacy
-        st.markdown('<div class="nova-sb-divider"><span>Privacy</span></div>', unsafe_allow_html=True)
-        incognito = st.toggle("Incognito Mode", value=st.session_state.incognito, key="incognito_toggle")
-        st.session_state.incognito = incognito
-        if incognito:
-            st.markdown(
-                '<div style="font-size:10px;color:var(--accent);font-family:var(--fb);letter-spacing:.06em;">'
-                '◈ History cleared on each message</div>',
-                unsafe_allow_html=True
-            )
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("\U0001f5d1\ufe0f  Clear All History", use_container_width=True, key="clear_all"):
+                st.session_state.sessions = []
+                st.rerun()
+            if st.button("\u21a9  Home", use_container_width=True, key="back_landing"):
+                st.session_state.app_mode = "landing"
+                st.rerun()
 
+        else:
+            api_key     = _secret_key
+            model_tier  = st.session_state.model_tier
+            persona     = st.session_state.persona
+            temperature = st.session_state.temperature
+            incognito   = st.session_state.incognito
+
+        # Footer
         st.markdown("""
-        <div style="margin-top:20px; padding-top:12px; border-top:1px solid var(--border);
-                    font-size:10px; color:var(--tx-3); font-family:var(--fb);
-                    text-align:center; letter-spacing:.08em;">
-            NEXUS © 2026 &nbsp;·&nbsp; <span style="color:var(--accent);">Neural Intelligence</span>
+        <div style="padding:12px 14px 6px;border-top:1px solid var(--border);margin-top:16px;
+                    display:flex;align-items:center;gap:9px;">
+            <div class="nexus-avatar">N</div>
+            <div>
+                <div style="font-family:var(--fb);font-size:12px;font-weight:600;color:var(--tx);">NEXUS User</div>
+                <div style="font-size:10px;color:var(--tx-3);font-family:var(--fb);">v5.1 · Neural Engine</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
     return api_key, temperature, model_tier
 
 
-# ═══════════════════════════════════════════
-#  CHAT BUBBLE RENDERER
 # ═══════════════════════════════════════════
 def render_chat_history(history: list):
     for i, msg in enumerate(history):
@@ -1134,15 +1678,7 @@ def render_chat_history(history: list):
             st.markdown(content)
             st.markdown("</div>", unsafe_allow_html=True)
 
-            token_count = approx_tokens(content)
-            copy_col, token_col = st.columns([1, 4])
-            with copy_col:
-                if st.button("📋 Copy", key=f"copy_btn_{i}", help="Copy this response"):
-                    st.session_state.copy_states[str(i)] = not st.session_state.copy_states.get(str(i), False)
-            with token_col:
-                st.markdown(f'<div class="nova-token-tag">~{token_count} tokens</div>', unsafe_allow_html=True)
-            if st.session_state.copy_states.get(str(i), False):
-                st.code(content, language=None)
+            # Copy handled by long-press JS context menu
         else:
             st.markdown("""
             <div class="nova-msg-wrap">
@@ -1212,12 +1748,14 @@ def render_dashboard(api_key, temperature, model_tier):
     </div>
     """, unsafe_allow_html=True)
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         "  ◈  Document  ",
         "  ▶  YouTube  ",
         "  ◎  Neural Chat  ",
         "  🖼  Image Vision  ",
         "  ◉  Voice  ",
+        "  🔄  Transform  ",
+        "  ⓘ  About & Legal  ",
     ])
 
     # ═══ TAB 1: Document ═══
@@ -1301,8 +1839,6 @@ def render_dashboard(api_key, temperature, model_tier):
         if analyze_btn:
             if not uploaded_file:
                 st.warning("Pehle document upload karo.")
-            elif not api_key:
-                st.error("❌ API Key nahi hai. Sidebar mein daalo.")
             elif not check_rate_limit():
                 st.error("⏱ Rate limit. Thodi der baad try karo.")
             else:
@@ -1408,8 +1944,6 @@ def render_dashboard(api_key, temperature, model_tier):
         if yt_analyze_btn:
             if not yt_url.strip():
                 st.warning("YouTube URL paste karo.")
-            elif not api_key:
-                st.error("❌ API Key nahi hai.")
             elif not check_rate_limit():
                 st.error("⏱ Rate limit. Thodi der baad try karo.")
             else:
@@ -1452,312 +1986,252 @@ def render_dashboard(api_key, temperature, model_tier):
 
     # ═══ TAB 3: Neural Chat ═══
     with tab3:
-        chat_col, info_col = st.columns([3, 1], gap="large")
+        # Full-width chat — no side panel
+        render_chat_history(st.session_state.chat_history)
 
-        with chat_col:
-            st.markdown("""
-            <div class="nova-card">
-                <div class="nova-card-header">
-                    <div class="nova-card-icon">◎</div>
-                    <div>
-                        <div class="nova-card-title">Neural Chat</div>
-                        <div class="nova-card-sub">Multi-turn · Context-Aware · Streaming · Markdown Rendered</div>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            with st.container():
-                st.markdown(
-                    '<div style="background:var(--s1);border:1px solid var(--border);'
-                    'border-radius:var(--r);padding:18px 18px 10px;'
-                    'min-height:320px;max-height:520px;overflow-y:auto;margin-bottom:12px;">',
-                    unsafe_allow_html=True
-                )
-                render_chat_history(st.session_state.chat_history)
-                st.markdown("</div>", unsafe_allow_html=True)
-
-            inp_c1, inp_c2 = st.columns([5, 1])
-            with inp_c1:
-                user_input = st.text_input(
-                    "Message",
-                    placeholder="Kuch bhi poochho — NEXUS sun raha hai...",
-                    label_visibility="collapsed",
-                    key=f"chat_input_{st.session_state.input_counter}"
-                )
-            with inp_c2:
-                send_btn = st.button("Send ▶", use_container_width=True, key="chat_send", type="primary")
-
-            st.markdown(
-                '<div style="font-size:9.5px;font-family:var(--fb);letter-spacing:.08em;'
-                'text-transform:uppercase;color:var(--tx-3);margin-bottom:6px;margin-top:4px;">'
-                'Quick Templates</div>',
-                unsafe_allow_html=True
+        # Input row
+        inp_c1, inp_c2 = st.columns([6, 1])
+        with inp_c1:
+            user_input = st.text_input(
+                "Message",
+                placeholder="Kuch bhi poochho — NEXUS sun raha hai...",
+                label_visibility="collapsed",
+                key=f"chat_input_{st.session_state.input_counter}"
             )
-            tmpl_cols = st.columns(len(PROMPT_TEMPLATES))
-            suggestion_triggered = None
-            for idx, (label, prompt_text) in enumerate(PROMPT_TEMPLATES):
-                with tmpl_cols[idx]:
-                    if st.button(label, use_container_width=True, key=f"tmpl_{idx}"):
+        with inp_c2:
+            send_btn = st.button("▶", use_container_width=True, key="chat_send", type="primary")
+
+        # Quick Templates — 2 per row (mobile friendly)
+        suggestion_triggered = None
+        for row_start in range(0, len(PROMPT_TEMPLATES), 2):
+            row_items = PROMPT_TEMPLATES[row_start:row_start+2]
+            cols = st.columns(len(row_items))
+            for ci, (col, (label, prompt_text)) in enumerate(zip(cols, row_items)):
+                with col:
+                    if st.button(label, use_container_width=True, key=f"tmpl_{row_start+ci}"):
                         suggestion_triggered = prompt_text
+        if suggestion_triggered:
+            user_input = suggestion_triggered
+            send_btn   = True
 
-            if suggestion_triggered:
-                user_input = suggestion_triggered
-                send_btn   = True
-
-        with info_col:
-            turns        = len(st.session_state.chat_history)
-            total_tokens = sum(approx_tokens(m["content"]) for m in st.session_state.chat_history)
-            st.markdown(f"""
-            <div class="nova-card-accent">
-                <div class="nova-card-header">
-                    <div class="nova-card-icon">▣</div>
-                    <div><div class="nova-card-title">Chat Status</div></div>
-                </div>
-                <div class="nova-pipeline">
-                    Engine ──── <span style="color:{'var(--accent)' if api_key else 'var(--danger)'};">
-                        {'● Active' if api_key else '● No Key'}</span><br>
-                    Tier ───────  <span style="color:var(--tx);">{model_tier}</span><br>
-                    Persona ──  <span style="color:var(--tx);">{st.session_state.persona.split()[0]}</span><br>
-                    Turns ──────  <span style="color:var(--tx);">{turns}</span><br>
-                    ~Tokens ──  <span style="color:var(--tx);">{total_tokens}</span><br>
-                    Temp ────── <span style="color:var(--tx);">{temperature}</span><br>
-                    Incognito ─  <span style="color:{'var(--accent)' if st.session_state.incognito else 'var(--tx-3)'};">
-                        {'ON' if st.session_state.incognito else 'OFF'}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("⟳ Clear Chat", use_container_width=True, key="clear_chat"):
+        # Bottom toolbar
+        tb1, tb2, tb3 = st.columns([2, 1, 1])
+        with tb1:
+            msg_count = max(0, len(st.session_state.chat_history) - 1)
+            st.markdown(
+                f'<div style="font-size:11px;color:var(--tx-3);font-family:var(--fb);padding-top:8px;">'
+                f'{msg_count} message{"s" if msg_count != 1 else ""}</div>',
+                unsafe_allow_html=True)
+        with tb2:
+            st.download_button(
+                "↓ Export",
+                data=build_chat_export(st.session_state.chat_history, "md"),
+                file_name=f"nexus_chat_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
+                mime="text/markdown",
+                use_container_width=True,
+                key="export_md"
+            )
+        with tb3:
+            if st.button("🗑️ Clear", use_container_width=True, key="clear_chat"):
                 st.session_state.chat_history = [INITIAL_GREETING]
                 st.session_state.copy_states  = {}
                 st.session_state.input_counter += 1
                 st.rerun()
 
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown(
-                '<div style="font-size:9.5px;font-family:var(--fb);letter-spacing:.08em;'
-                'text-transform:uppercase;color:var(--tx-3);margin-bottom:6px;">Export Chat</div>',
-                unsafe_allow_html=True
-            )
-            exp_c1, exp_c2 = st.columns(2)
-            with exp_c1:
-                st.download_button(
-                    "↓ .md",
-                    data=build_chat_export(st.session_state.chat_history, "md"),
-                    file_name=f"nexus_chat_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
-                    mime="text/markdown",
-                    use_container_width=True,
-                    key="export_md"
-                )
-            with exp_c2:
-                st.download_button(
-                    "↓ .txt",
-                    data=build_chat_export(st.session_state.chat_history, "txt"),
-                    file_name=f"nexus_chat_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
-                    mime="text/plain",
-                    use_container_width=True,
-                    key="export_txt"
-                )
-
-        # Process message with streaming
-        if send_btn and user_input and user_input.strip():
-            if not api_key:
-                st.error("❌ API Key nahi hai. Sidebar mein daalo.")
-            elif not check_rate_limit():
+        # ── Process send ──────────────────────────
+        if send_btn and user_input.strip():
+            if not check_rate_limit():
                 st.error("⏱ Rate limit. Thodi der baad try karo.")
             else:
                 safe, category = is_safe(user_input)
                 if not safe:
                     show_block_error(category)
                 else:
-                    st.session_state.chat_history.append({"role": "user", "content": user_input})
-
-                    messages_to_send = (
-                        [INITIAL_GREETING, {"role": "user", "content": user_input}]
-                        if st.session_state.incognito
-                        else st.session_state.chat_history
+                    st.session_state.chat_history.append(
+                        {"role": "user", "content": user_input}
                     )
-
-                    full_response = ""
-                    try:
-                        system_prompt = PERSONAS.get(st.session_state.persona, PERSONAS["NEXUS Default"])
-                        primary_model = MODEL_MAP.get(model_tier, MODEL_MAP["Ultra"])
-
-                        groq_messages = [{"role": "system", "content": system_prompt}]
-                        for msg in messages_to_send:
-                            role = "assistant" if msg["role"] == "assistant" else "user"
-                            groq_messages.append({"role": role, "content": msg["content"]})
-
+                    thinking_ph = st.empty()
+                    with thinking_ph.container():
                         st.markdown("""
-                        <div class="nova-msg-wrap">
-                            <div class="nova-msg-header-ai">
-                                <div class="nova-msg-av ai">N</div>
-                                <div class="nova-msg-who">NEXUS</div>
-                            </div>
+                        <div class="nova-thinking">
+                            <div class="nova-dots"><span></span><span></span><span></span></div>
+                            <div class="nova-thinking-text">NEXUS soch raha hai...</div>
                         </div>
                         """, unsafe_allow_html=True)
-
-                        stream_ph = st.empty()
-                        stream = _call_groq(api_key, groq_messages, primary_model, temperature, stream=True)
-
-                        for chunk in stream:
-                            delta = chunk.choices[0].delta.content
-                            if delta:
-                                full_response += delta
-                                stream_ph.markdown(
-                                    f'<div class="nova-bub-ai">{full_response} ▊</div>',
-                                    unsafe_allow_html=True
-                                )
-                        stream_ph.markdown(
-                            f'<div class="nova-bub-ai">{full_response}</div>',
-                            unsafe_allow_html=True
-                        )
-
-                    except Exception as e:
-                        err = str(e)
-                        if "invalid_api_key" in err.lower() or "authentication" in err.lower():
-                            full_response = "❌ API Key galat hai. Sahi key daalo."
-                            st.toast("Invalid API Key!", icon="❌")
-                        elif "rate_limit" in err.lower():
-                            full_response = neural_chat_response(
-                                messages_to_send, api_key, temperature, model_tier, st.session_state.persona
-                            )
-                        else:
-                            full_response = f"❌ Kuch error aaya: {err[:80]}"
-                            st.toast("Kuch gadbad hui.", icon="❌")
-                        if full_response.startswith("❌"):
-                            st.error(full_response)
-
-                    if full_response:
-                        st.session_state.chat_history.append({"role": "assistant", "content": full_response})
-                        st.session_state.query_count += 1
-
-                    if st.session_state.incognito:
-                        st.session_state.chat_history = [
-                            INITIAL_GREETING,
-                            {"role": "user",      "content": user_input},
-                            {"role": "assistant", "content": full_response},
-                        ]
-
+                    reply = neural_chat_response(
+                        st.session_state.chat_history,
+                        api_key, temperature, model_tier,
+                        st.session_state.persona
+                    )
+                    thinking_ph.empty()
+                    st.session_state.chat_history.append(
+                        {"role": "assistant", "content": reply}
+                    )
+                    st.session_state.query_count += 1
                     st.session_state.input_counter += 1
+                    if not st.session_state.incognito:
+                        _save_current_session()
                     st.rerun()
 
     # ═══ TAB 4: Image Vision ═══
     with tab4:
-        img_col1, img_col2 = st.columns([3, 2], gap="large")
 
-        with img_col1:
-            st.markdown("""
-            <div class="nova-card">
-                <div class="nova-card-header">
-                    <div class="nova-card-icon">🖼</div>
-                    <div>
-                        <div class="nova-card-title">Image Vision Engine</div>
-                        <div class="nova-card-sub">Upload any image — NEXUS analyzes it</div>
-                    </div>
-                </div>
+        # ── Header ──────────────────────────────────
+        st.markdown("""
+        <div style="display:flex;align-items:center;gap:12px;padding:4px 0 16px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:var(--s2);
+                        border:1px solid var(--border);display:flex;align-items:center;
+                        justify-content:center;font-size:18px;">🔍</div>
+            <div>
+                <div style="font-family:var(--fb);font-size:16px;font-weight:700;
+                            color:var(--tx);letter-spacing:-.02em;">Image Vision</div>
+                <div style="font-family:var(--fs);font-size:12px;color:var(--tx-3);
+                            margin-top:1px;">Upload any image — NEXUS analyzes it with AI</div>
             </div>
-            """, unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
 
-            st.markdown("""
-            <div class="nova-drop-zone">
-                <div class="nova-drop-icon">🖼</div>
-                <div class="nova-drop-title">Upload Your Image</div>
-                <div class="nova-drop-sub">PNG · JPG · JPEG · WEBP · GIF</div>
-            </div>
-            """, unsafe_allow_html=True)
+        # ── Upload Zone ─────────────────────────────
+        st.markdown('<div class="img-upload-zone">' 
+                    '<div class="img-upload-icon">🖼️</div>' 
+                    '<div class="img-upload-title">Drop your image here</div>' 
+                    '<div class="img-upload-sub">PNG · JPG · JPEG · WEBP · GIF</div>' 
+                    '</div>', unsafe_allow_html=True)
 
-            uploaded_img = st.file_uploader(
-                "Or click to browse",
-                type=["png", "jpg", "jpeg", "webp", "gif"],
-                label_visibility="collapsed",
-                key="img_uploader"
+        uploaded_img = st.file_uploader(
+            "Upload Image",
+            type=["png", "jpg", "jpeg", "webp", "gif"],
+            label_visibility="collapsed",
+            key="img_uploader"
+        )
+
+        # ── Image Preview ────────────────────────────
+        if uploaded_img:
+            img_size_kb = len(uploaded_img.getvalue()) / 1024
+            img_size_str = f"{img_size_kb:.0f} KB" if img_size_kb < 1024 else f"{img_size_kb/1024:.1f} MB"
+            st.markdown('<div class="img-preview-wrap">', unsafe_allow_html=True)
+            st.image(uploaded_img, use_container_width=True)
+            st.markdown(
+                f'<div class="img-meta-row">' 
+                f'<span class="img-meta-dot">◈</span>' 
+                f'<span>{uploaded_img.name}</span>' 
+                f'<span class="img-meta-dot">·</span>' 
+                f'<span>{img_size_str}</span>' 
+                f'<span class="img-meta-dot">·</span>' 
+                f'<span>{uploaded_img.type.split("/")[-1].upper()}</span>' 
+                f'</div></div>',
+                unsafe_allow_html=True
             )
 
-            img_question = st.text_area(
-                "Ask about the image (optional)",
-                placeholder="What is in this image? Describe the colors, objects, text...",
-                height=90,
-                key="img_question"
+        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+
+        # ── Vision Mode Grid ─────────────────────────
+        st.markdown(
+            '<div style="font-family:var(--fb);font-size:10px;font-weight:700;' 
+            'letter-spacing:.09em;text-transform:uppercase;color:var(--tx-3);margin-bottom:10px;">' 
+            'Analysis Mode</div>',
+            unsafe_allow_html=True
+        )
+
+        MODE_OPTIONS = [
+            ("🔭", "General Analysis",       "Full detailed breakdown of the image"),
+            ("🔤", "Text & OCR",             "Extract all visible text from image"),
+            ("📦", "Object Detection",        "Detect & list all objects with positions"),
+            ("🔥", "Roast This Image",        "Savage + funny critique of the image"),
+            ("🧒", "ELI5 — Explain Simply",   "Explain like I'm 10 years old"),
+            ("✨", "Vibe Check",              "Aesthetic score, mood & vibe analysis"),
+        ]
+
+        mode_labels = [m[1] for m in MODE_OPTIONS]
+        # 2-column grid using columns
+        mode_rows = [MODE_OPTIONS[i:i+2] for i in range(0, len(MODE_OPTIONS), 2)]
+        selected_mode_idx = st.session_state.get("img_mode_idx", 0)
+
+        new_idx = selected_mode_idx
+        for row in mode_rows:
+            cols = st.columns(len(row))
+            for ci, (col, (icon, label, desc)) in enumerate(zip(cols, row)):
+                global_idx = MODE_OPTIONS.index((icon, label, desc))
+                with col:
+                    is_sel = (global_idx == selected_mode_idx)
+                    border_col = "var(--accent)" if is_sel else "var(--border)"
+                    bg_col     = "var(--accent-glow)" if is_sel else "var(--s1)"
+                    st.markdown(
+                        f'<div style="background:{bg_col};border:1.5px solid {border_col};' 
+                        f'border-radius:10px;padding:12px 14px;margin-bottom:2px;">' 
+                        f'<div style="font-size:20px;margin-bottom:5px;">{icon}</div>' 
+                        f'<div style="font-family:var(--fb);font-size:12px;font-weight:700;color:var(--tx);margin-bottom:2px;">{label}</div>' 
+                        f'<div style="font-family:var(--fs);font-size:10px;color:var(--tx-3);">{desc}</div>' 
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+                    if st.button("Select" if not is_sel else "✓ Selected",
+                                 key=f"img_mode_{global_idx}",
+                                 use_container_width=True,
+                                 type="primary" if is_sel else "secondary"):
+                        st.session_state["img_mode_idx"] = global_idx
+                        st.rerun()
+
+        img_mode = mode_labels[st.session_state.get("img_mode_idx", 0)]
+
+        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+
+        # ── Custom Question ──────────────────────────
+        img_question = st.text_area(
+            "💬 Custom Question (optional)",
+            placeholder="e.g. What brand is shown? Is there any damage visible? What is the person doing?",
+            height=80,
+            key="img_question",
+            label_visibility="visible"
+        )
+
+        # ── Analyze Button ───────────────────────────
+        analyze_img_btn = st.button(
+            "🔍  Analyze Image",
+            use_container_width=True,
+            key="img_analyze",
+            type="primary",
+            disabled=(uploaded_img is None)
+        )
+
+        if not uploaded_img:
+            st.markdown(
+                '<div style="text-align:center;font-family:var(--fb);font-size:10px;' 
+                'color:var(--tx-3);margin-top:4px;letter-spacing:.05em;">' 
+                '↑ Upload an image to enable analysis</div>',
+                unsafe_allow_html=True
             )
 
-            img_mode = st.selectbox(
-                "Vision Mode",
-                [
-                    "General Analysis",
-                    "Text & OCR Extraction",
-                    "Object Detection",
-                    "🔥 Roast This Image",
-                    "🧒 ELI5 — Explain Simply",
-                    "✨ Vibe Check",
-                ],
-                key="img_mode"
-            )
-
-            analyze_img_btn = st.button("🖼  Analyze Image", use_container_width=True, key="img_analyze", type="primary")
-
-        with img_col2:
-            st.markdown("""
-            <div class="nova-card-accent">
-                <div class="nova-card-header">
-                    <div class="nova-card-icon">▣</div>
-                    <div>
-                        <div class="nova-card-title">Image Preview</div>
-                        <div class="nova-card-sub">Live preview of uploaded image</div>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            if uploaded_img:
-                st.image(uploaded_img, use_container_width=True)
-                img_size_kb = len(uploaded_img.getvalue()) / 1024
-                st.markdown(
-                    f'<div style="font-size:10px;color:var(--tx-3);font-family:var(--fb);margin-top:6px;">'
-                    f'◈ {uploaded_img.name} · {img_size_kb:.1f} KB · {uploaded_img.type}</div>',
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown("""
-                <div style="background:var(--s2);border-radius:var(--r-sm);height:160px;
-                display:flex;align-items:center;justify-content:center;
-                border:1px dashed var(--border);color:var(--tx-3);
-                font-size:10px;font-family:var(--fb);letter-spacing:.1em;">
-                    NO IMAGE YET
-                </div>
-                """, unsafe_allow_html=True)
-
+        # ── Process ──────────────────────────────────
         if analyze_img_btn:
             if not uploaded_img:
-                st.warning("Pehle image upload karo.")
-            elif not api_key:
-                st.error("❌ API Key nahi hai.")
+                st.warning("Image upload karo pehle.")
             elif not check_rate_limit():
-                st.error("⏱ Rate limit. Thodi der baad try karo.")
+                st.error("⏱ Rate limit hit. Thodi der baad try karo.")
             else:
                 img_mode_prompts = {
-                    "General Analysis": "",
-                    "Text & OCR Extraction": "Extract ALL text visible in this image. Present it exactly as it appears, preserving formatting. Then provide a brief summary of what the text is about.",
-                    "Object Detection": "List ALL objects visible in this image in a Markdown table:\n| Object | Location | Confidence | Description |\n|--------|----------|------------|-----------|\nBe thorough — include every visible item.",
-                    "🔥 Roast This Image": "Brutally roast this image! What's wrong, weird, or cringe about it? Be funny and savage. Then give 3 genuine improvements. Use 🔥 emoji. End with a savage one-liner.",
-                    "🧒 ELI5 — Explain Simply": "Explain what's in this image like you're talking to a 10-year-old. Use simple words, fun comparisons, and make it engaging.",
-                    "✨ Vibe Check": "Do a VIBE CHECK on this image:\n1. Overall vibe (1 word)\n2. Emotional tone\n3. Hidden story or context\n4. Aesthetic score /10\n5. Vibe summary: 1 emoji + 1 sentence",
+                    "General Analysis":     "",
+                    "Text & OCR":           "Extract ALL text visible in this image exactly as it appears, preserving formatting and layout. Then provide a brief summary of what the text is about.",
+                    "Object Detection":     "List ALL objects visible in this image in a Markdown table:\n| # | Object | Location in Frame | Description |\n|---|--------|------------------|-------------|\nBe exhaustive — include every visible item, person, or element.",
+                    "Roast This Image":     "Brutally roast this image! What\'s wrong, weird, or cringe? Be clever and funny. Give 3 genuine improvements too. Use 🔥 emoji. End with one savage line.",
+                    "ELI5 — Explain Simply":"Explain what\'s in this image like you\'re talking to a 10-year-old. Use simple words, fun comparisons, and make it engaging and easy to understand.",
+                    "Vibe Check":           "Do a full VIBE CHECK on this image:\n1. **Overall vibe** (one word)\n2. **Emotional tone**\n3. **Hidden story or context**\n4. **Aesthetic score** /10\n5. **Best feature**\n6. **Vibe summary**: 1 emoji + 1 sentence",
                 }
 
                 base_q = img_mode_prompts.get(img_mode, "")
-                if img_question.strip():
-                    final_question = f"{img_question}\n\nAdditionally: {base_q}" if base_q else img_question
+                if img_question.strip() and base_q:
+                    final_question = f"{img_question.strip()}\n\nAlso: {base_q}"
+                elif img_question.strip():
+                    final_question = img_question.strip()
                 else:
-                    final_question = base_q or ""
+                    final_question = base_q or "Describe this image in detail."
 
                 thinking_ph = st.empty()
                 with thinking_ph.container():
                     st.markdown("""
                     <div class="nova-thinking">
                         <div class="nova-dots"><span></span><span></span><span></span></div>
-                        <div class="nova-thinking-text">NEXUS image dekh raha hai...</div>
+                        <div class="nova-thinking-text">NEXUS image analyze kar raha hai...</div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -1769,25 +2243,41 @@ def render_dashboard(api_key, temperature, model_tier):
 
                 if result.startswith("❌"):
                     st.error(result)
-                    st.toast("Image analysis fail hua.", icon="❌")
+                    st.toast("Analysis fail hua.", icon="❌")
                 else:
-                    st.toast("Image analyzed!", icon="✅")
-                    st.markdown("""
-                    <div class="nova-response-card">
-                        <div class="nova-response-header">
-                            <div class="nova-response-title">Vision Analysis Report</div>
-                            <div class="nova-response-label">Image Intel</div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    st.markdown(result)
-                    st.download_button(
-                        "↓  Export Report",
-                        data=result,
-                        file_name="nexus_image_report.md",
-                        mime="text/markdown",
-                        use_container_width=True,
+                    st.toast("✅ Image analyzed!", icon="✅")
+                    # Result card
+                    st.markdown(
+                        f'<div class="img-result-header">' 
+                        f'<div class="img-result-title">📊 Vision Analysis Report</div>' 
+                        f'<div class="img-result-badge">{img_mode}</div>' 
+                        f'</div>',
+                        unsafe_allow_html=True
                     )
+                    st.markdown('<div class="img-result-body">', unsafe_allow_html=True)
+                    st.markdown(result)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # Export row
+                    ex1, ex2 = st.columns(2)
+                    with ex1:
+                        st.download_button(
+                            "↓ Export as .md",
+                            data=result,
+                            file_name=f"nexus_vision_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
+                            mime="text/markdown",
+                            use_container_width=True,
+                            key="img_export_md"
+                        )
+                    with ex2:
+                        st.download_button(
+                            "↓ Export as .txt",
+                            data=result,
+                            file_name=f"nexus_vision_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+                            mime="text/plain",
+                            use_container_width=True,
+                            key="img_export_txt"
+                        )
 
     # ═══ TAB 5: Voice ═══
     with tab5:
@@ -1823,28 +2313,25 @@ def render_dashboard(api_key, temperature, model_tier):
                 if audio_data and audio_data.get("bytes"):
                     st.success("✅ Voice capture ho gaya! Processing...")
 
-                    if api_key:
-                        # Initialize transcript before use — avoids NameError
-                        transcript = None
-                        raw_transcript = transcribe_voice(audio_data["bytes"], api_key)
+                    # Initialize transcript before use — avoids NameError
+                    transcript = None
+                    raw_transcript = transcribe_voice(audio_data["bytes"], api_key)
 
-                        if not raw_transcript.startswith("["):
-                            transcript = raw_transcript
-                            voice_messages = [
-                                INITIAL_GREETING,
-                                {"role": "user", "content": transcript}
-                            ]
-                            voice_ai_reply = neural_chat_response(
-                                voice_messages, api_key, temperature, model_tier, st.session_state.persona
-                            )
-                            voice_result = f"**You said:** {transcript}\n\n---\n\n{voice_ai_reply}"
-                        else:
-                            voice_result = (
-                                f"⚠️ Voice transcription fail hua: {raw_transcript}\n\n"
-                                "**Tip:** Neural Chat tab mein type karke try karo."
-                            )
+                    if not raw_transcript.startswith("["):
+                        transcript = raw_transcript
+                        voice_messages = [
+                            INITIAL_GREETING,
+                            {"role": "user", "content": transcript}
+                        ]
+                        voice_ai_reply = neural_chat_response(
+                            voice_messages, api_key, temperature, model_tier, st.session_state.persona
+                        )
+                        voice_result = f"**You said:** {transcript}\n\n---\n\n{voice_ai_reply}"
                     else:
-                        voice_result = "⚠️ API Key nahi hai. Sidebar mein key daalo."
+                        voice_result = (
+                            f"⚠️ Voice transcription fail hua: {raw_transcript}\n\n"
+                            "**Tip:** Neural Chat tab mein type karke try karo."
+                        )
 
                     st.markdown("""
                     <div class="nova-response-card">
@@ -1856,7 +2343,7 @@ def render_dashboard(api_key, temperature, model_tier):
                     """, unsafe_allow_html=True)
                     st.markdown(voice_result)
 
-                    if api_key and not voice_result.startswith("⚠️"):
+                    if not voice_result.startswith("⚠️"):
                         voice_label = f"[Voice] {transcript}" if transcript else "[Voice Input]"
                         st.session_state.chat_history.append({"role": "user", "content": voice_label})
                         st.session_state.chat_history.append({"role": "assistant", "content": voice_result})
@@ -1931,11 +2418,600 @@ def render_dashboard(api_key, temperature, model_tier):
     """, unsafe_allow_html=True)
 
 
+
+
+    # ═══ TAB 6: Transform ═══
+    with tab6:
+
+        # Header
+        st.markdown("""
+        <div style="display:flex;align-items:center;gap:12px;padding:4px 0 16px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:var(--s2);
+                        border:1px solid var(--border);display:flex;align-items:center;
+                        justify-content:center;font-size:18px;">🔄</div>
+            <div>
+                <div style="font-family:var(--fb);font-size:16px;font-weight:700;
+                            color:var(--tx);letter-spacing:-.02em;">Transform</div>
+                <div style="font-family:var(--fs);font-size:12px;color:var(--tx-3);margin-top:1px;">
+                    Koi bhi text paste karo — ek click mein convert karo
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Input
+        transform_input = st.text_area(
+            "Input Text",
+            placeholder="Yahan koi bhi text paste karo — article, paragraph, notes, anything...",
+            height=160,
+            key="transform_input",
+            label_visibility="collapsed"
+        )
+
+        char_count = len(transform_input)
+        st.markdown(
+            f'<div style="font-family:var(--fb);font-size:10px;color:var(--tx-3);' 
+            f'text-align:right;margin-top:-8px;margin-bottom:12px;">' 
+            f'{char_count} characters</div>',
+            unsafe_allow_html=True
+        )
+
+        # Transform modes — 2 per row
+        TRANSFORM_MODES = [
+            ("🐦", "Twitter / X Thread",   "3-5 punchy tweets mein convert karo",         "Convert this into a compelling Twitter/X thread. Make it punchy, engaging, and use emojis. Number each tweet. Max 280 chars each."),
+            ("💼", "LinkedIn Post",         "Professional LinkedIn post banao",             "Convert this into a professional LinkedIn post. Add a strong hook, key insights, and a call-to-action. Use line breaks for readability. Add 3-5 relevant hashtags at the end."),
+            ("📧", "Formal Email",          "Professional email mein convert karo",         "Convert this into a well-structured formal email. Include: Subject line, greeting, body paragraphs, and a professional sign-off."),
+            ("📱", "WhatsApp Message",      "Casual aur short message banao",               "Convert this into a casual, friendly WhatsApp message. Keep it short, conversational, and natural. Use simple language."),
+            ("📝", "Short Summary",         "3-4 lines mein summarize karo",                "Summarize this in exactly 3-4 concise sentences. Capture only the most essential points. Be direct."),
+            ("🌍", "Hindi ↔ English",       "Language translate karo",                      "Detect the language of this text. If it is in English, translate it to fluent natural Hindi. If it is in Hindi, translate it to fluent natural English. Provide only the translation, no explanation."),
+            ("📣", "Casual Explanation",    "Simple aur casual tarike se explain karo",     "Explain this in the most casual, friendly way possible — like explaining to a friend over chai. No jargon, no formality. Use Hinglish if it helps."),
+            ("⚡", "Bullet Points",         "Key points bullets mein nikalo",               "Extract the key points from this text as clean bullet points. Each bullet should be concise (max 1 line). Start each with a relevant emoji."),
+        ]
+
+        st.markdown(
+            '<div style="font-family:var(--fb);font-size:10px;font-weight:700;' 
+            'letter-spacing:.09em;text-transform:uppercase;color:var(--tx-3);margin-bottom:10px;">' 
+            'Choose Transform</div>',
+            unsafe_allow_html=True
+        )
+
+        selected_transform = st.session_state.get("selected_transform", None)
+        triggered_transform = None
+
+        for row_start in range(0, len(TRANSFORM_MODES), 2):
+            row = TRANSFORM_MODES[row_start:row_start+2]
+            cols = st.columns(2)
+            for ci, (col, (icon, label, desc, _prompt)) in enumerate(zip(cols, row)):
+                gidx = row_start + ci
+                is_sel = (selected_transform == gidx)
+                with col:
+                    border = "var(--accent)" if is_sel else "var(--border)"
+                    bg     = "var(--accent-glow)" if is_sel else "var(--s1)"
+                    st.markdown(
+                        f'<div style="background:{bg};border:1.5px solid {border};' 
+                        f'border-radius:10px;padding:11px 13px;margin-bottom:2px;">' 
+                        f'<div style="font-size:18px;margin-bottom:4px;">{icon}</div>' 
+                        f'<div style="font-family:var(--fb);font-size:12px;font-weight:700;color:var(--tx);margin-bottom:2px;">{label}</div>' 
+                        f'<div style="font-family:var(--fs);font-size:10px;color:var(--tx-3);">{desc}</div>' 
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+                    btn_label = "✓ Selected" if is_sel else "Select"
+                    btn_type  = "primary" if is_sel else "secondary"
+                    if st.button(btn_label, key=f"tr_mode_{gidx}", use_container_width=True, type=btn_type):
+                        st.session_state["selected_transform"] = gidx
+                        st.rerun()
+
+        st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+
+        # Transform button
+        can_transform = bool(transform_input.strip()) and selected_transform is not None
+        transform_btn = st.button(
+            "🔄  Transform Now",
+            use_container_width=True,
+            key="transform_go",
+            type="primary",
+            disabled=not can_transform
+        )
+
+        if not transform_input.strip():
+            st.markdown('<div style="text-align:center;font-size:10px;color:var(--tx-3);font-family:var(--fb);">↑ Text paste karo upar</div>', unsafe_allow_html=True)
+        elif selected_transform is None:
+            st.markdown('<div style="text-align:center;font-size:10px;color:var(--tx-3);font-family:var(--fb);">↑ Transform mode select karo</div>', unsafe_allow_html=True)
+
+        # Process
+        if transform_btn and can_transform:
+            if not check_rate_limit():
+                st.error("⏱ Rate limit. Thodi der baad try karo.")
+            else:
+                _, _, _, prompt_instruction = TRANSFORM_MODES[selected_transform]
+                icon_t, label_t, _, _ = TRANSFORM_MODES[selected_transform]
+
+                full_prompt = f"{prompt_instruction}\n\n---\n\n{transform_input.strip()}"
+
+                thinking_ph = st.empty()
+                with thinking_ph.container():
+                    st.markdown("""
+                    <div class="nova-thinking">
+                        <div class="nova-dots"><span></span><span></span><span></span></div>
+                        <div class="nova-thinking-text">Transforming...</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                try:
+                    client = __import__('groq').Groq(api_key=api_key)
+                    resp = client.chat.completions.create(
+                        model=MODEL_MAP.get(model_tier, MODEL_MAP["Ultra"]),
+                        messages=[
+                            {"role": "system", "content": "You are a precise text transformation engine. Transform exactly as instructed. Output only the transformed result — no preamble, no explanation." + SAFETY_SYSTEM_ADDON},
+                            {"role": "user",   "content": full_prompt}
+                        ],
+                        temperature=0.6,
+                        max_tokens=1200,
+                    )
+                    raw_result = resp.choices[0].message.content.strip()
+                    transform_result = _LLM_BLOCK_MSG if "NEXUS_SAFETY_REFUSE" in raw_result else raw_result
+                except Exception as e:
+                    transform_result = None
+                    st.error(f"❌ Error: {str(e)[:80]}")
+
+                thinking_ph.empty()
+
+                if transform_result:
+                    st.session_state.query_count += 1
+                    st.toast(f"✅ Transformed to {label_t}!", icon="🔄")
+
+                    # Result card
+                    st.markdown(
+                        f'<div class="img-result-header">' 
+                        f'<div class="img-result-title">{icon_t} {label_t}</div>' 
+                        f'<div class="img-result-badge">Transformed</div>' 
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+                    st.markdown('<div class="img-result-body">', unsafe_allow_html=True)
+                    st.markdown(transform_result)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # Copy + Export row
+                    cp1, cp2 = st.columns(2)
+                    with cp1:
+                        st.code(transform_result, language=None)
+                    with cp2:
+                        st.download_button(
+                            "↓ Download",
+                            data=transform_result,
+                            file_name=f"nexus_transform_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+                            mime="text/plain",
+                            use_container_width=True,
+                            key="transform_download"
+                        )
+
+
+    # ═══ TAB 7: About & Legal ═══
+    with tab7:
+
+        # ── Page Hero ──────────────────────────────────────────────────────
+        st.markdown("""
+        <div style="text-align:center;padding:40px 20px 32px;">
+            <div style="width:64px;height:64px;border-radius:16px;
+                        background:var(--accent-glow);border:1px solid var(--accent-ring);
+                        display:inline-flex;align-items:center;justify-content:center;
+                        font-family:var(--fb);font-size:26px;font-weight:800;
+                        color:var(--accent);margin-bottom:20px;">N</div>
+            <div style="font-family:var(--fb);font-size:10px;font-weight:700;
+                        letter-spacing:.18em;text-transform:uppercase;
+                        color:var(--tx-3);margin-bottom:12px;">Intelligence Platform · v5.1.0</div>
+            <div style="font-family:var(--fb);font-size:32px;font-weight:800;
+                        letter-spacing:-.04em;color:var(--tx);margin-bottom:10px;">
+                NEXUS<span style="color:var(--accent);">.</span>
+            </div>
+            <div style="font-family:var(--fs);font-size:14px;color:var(--tx-2);
+                        max-width:480px;margin:0 auto;line-height:1.8;">
+                A multi-modal AI intelligence platform — built from scratch,
+                designed for real use, and made to actually work.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<div style='height:4px;background:linear-gradient(90deg,transparent,var(--accent-ring),transparent);margin-bottom:28px;'></div>", unsafe_allow_html=True)
+
+        # ── SECTION 1: About the Platform ─────────────────────────────────
+        with st.expander("◈  About NEXUS — The Full Story", expanded=True):
+            st.markdown("""
+<div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
+
+<div style="font-family:var(--fb);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:-.02em;">
+What is NEXUS?
+</div>
+
+NEXUS is a multi-modal AI intelligence platform built on top of Groq's ultra-fast inference engine. It's not just another chatbot wrapper — it's a full-stack productivity tool designed to handle real tasks: analyzing lengthy documents, breaking down YouTube videos you don't have time to watch, understanding images, processing voice commands, and transforming text into whatever format you need in seconds.
+
+The idea was simple: most AI tools feel like toys. They're slow, they hallucinate constantly, and they don't actually fit into a real workflow. NEXUS was built to be different — fast, focused, and genuinely useful for someone who has actual work to do.
+
+<br>
+
+<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
+What Can NEXUS Actually Do?
+</div>
+
+<b style="color:var(--accent);">◈ Document Intelligence</b> — Upload any PDF, DOCX, TXT, or CSV file and NEXUS will read the whole thing, find what matters, and present it in a format that saves you hours. From full semantic analysis to executive summaries, entity extraction to debate generation — it handles documents the way a sharp analyst would, not the way a search engine does.
+
+<br><br>
+
+<b style="color:var(--accent);">▶ YouTube Intelligence Architect</b> — Paste a YouTube URL and NEXUS fetches the transcript, processes it, and gives you key moments with timestamps, actionable insights, chapter breakdowns, quiz questions, and more. You get the value of a 40-minute video in under a minute.
+
+<br><br>
+
+<b style="color:var(--accent);">◎ Neural Chat</b> — The main conversation engine. Switch between five different personas — from a default sharp assistant to a coding expert, data analyst, teacher, or creative writer. The chat remembers context across the session and responds in the language you use. Hinglish, English, Hindi — it adapts.
+
+<br><br>
+
+<b style="color:var(--accent);">🖼 Image Vision</b> — Powered by a dedicated vision model, NEXUS can analyze any image you throw at it. Extract text, identify objects, check vibes, get roasted for your terrible design choices, or ask any custom question about what's in the frame.
+
+<br><br>
+
+<b style="color:var(--accent);">◉ Voice Command Interface</b> — Speak your query and NEXUS transcribes it using Whisper (a state-of-the-art speech recognition model) and then responds intelligently. Results automatically save to your Neural Chat history.
+
+<br><br>
+
+<b style="color:var(--accent);">🔄 Text Transform Engine</b> — Paste any text and convert it into Twitter threads, LinkedIn posts, formal emails, WhatsApp messages, summaries, bullet points, or translations with a single click. Eight transform modes, instant output.
+
+<br>
+
+<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
+The Technical Stack
+</div>
+
+NEXUS runs on <b>Streamlit</b> for the UI, <b>Groq API</b> for inference, and a layered fallback engine that automatically switches models if one fails. The primary model is LLaMA 3.3 70B (Ultra tier) — one of the most capable open-weight models available. If that's unavailable, it falls through a chain to LLaMA 70B and then to LLaMA 8B Instant, so you almost never hit a dead end.
+
+For image analysis, a dedicated vision model (LLaMA 3.2 Vision) handles multimodal inputs. Voice transcription runs on Whisper Large v3 — the same model that powers many production-grade transcription pipelines.
+
+The themes are fully custom: Nova Crystal (dark gold), Arctic Frost (clean light), and Crimson Noir (dark red). The entire UI is hand-coded in CSS injected into Streamlit — no templates, no boilerplate.
+
+</div>
+""", unsafe_allow_html=True)
+
+        # ── SECTION 3: How It Works (Technical Deep Dive) ─────────────────
+        with st.expander("⚙️  How NEXUS Works — Technical Deep Dive"):
+            st.markdown("""
+<div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
+
+<div style="font-family:var(--fb);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:-.02em;">
+Architecture Overview
+</div>
+
+NEXUS is a single-file Streamlit application (~2,600 lines) organized into clearly separated layers: theme system, safety filter, backend functions, UI renderers, and a routing layer at the bottom. There's no database, no user authentication, no persistent server-side state — everything lives in Streamlit's session state for the duration of your browser session.
+
+<br>
+
+<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
+The Inference Engine
+</div>
+
+All AI calls go through Groq's inference API. Groq uses custom hardware (LPUs — Language Processing Units) optimized specifically for transformer inference, which is why responses feel nearly instant compared to typical cloud GPU setups.
+
+The fallback chain works like this:
+
+<div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 18px;margin:12px 0;font-family:var(--fb);font-size:12px;line-height:2.2;">
+Primary: LLaMA 3.3 70B Versatile (Ultra) <span style="color:var(--accent);">→</span> most capable<br>
+Fallback 1: LLaMA 3 70B 8192 (Balanced) <span style="color:var(--accent);">→</span> stable, reliable<br>
+Fallback 2: LLaMA 3.1 8B Instant (Fast) <span style="color:var(--accent);">→</span> lightweight, quick<br>
+Fallback 3: Gemma 2 9B IT <span style="color:var(--accent);">→</span> last resort<br>
+Vision: LLaMA 3.2 11B Vision Preview <span style="color:var(--accent);">→</span> image-only<br>
+Voice: Whisper Large v3 <span style="color:var(--accent);">→</span> transcription-only
+</div>
+
+<br>
+
+<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
+The 3-Layer Content Safety System
+</div>
+
+NEXUS runs a three-layer content safety pipeline on every request:
+
+<b style="color:var(--accent);">Layer 1 — Pre-filter (keyword blacklist):</b> Before any API call is made, the user's input goes through a normalization pipeline. This includes Unicode NFKD decomposition (to catch Cyrillic lookalike attacks), extended leet-speak normalization (0→o, @→a, €→e, and 18+ substitutions), and word-split removal (so "b.o.m.b" and "b o m b" both resolve to "bomb"). The normalized text is then matched against a six-category blacklist covering terrorism, weapons, cybercrime, child safety, hate speech, and self-harm. If there's a match, the request is blocked instantly — no API call is made.
+
+<br><br>
+
+<b style="color:var(--accent);">Layer 2 — LLM-level system prompt enforcement:</b> Every single API call — regardless of which feature triggered it — has a strict safety instruction block appended to the system prompt. The model is explicitly told that if it detects a request related to any banned category (regardless of phrasing, roleplay framing, academic framing, or any obfuscation attempt), it must respond with only a specific sentinel token and nothing else.
+
+<br><br>
+
+<b style="color:var(--accent);">Layer 3 — Post-response sentinel check:</b> After the model responds, NEXUS checks whether the response contains the sentinel token. If it does, the raw model output is discarded entirely and replaced with a clean English-language refusal message. The user never sees the sentinel or any partial harmful content.
+
+<br>
+
+<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
+Session & Rate Limiting
+</div>
+
+Each browser session gets 15 free messages. The counter tracks across all features — chat, document analysis, YouTube, image, voice, and transforms all count toward the same session limit. When the limit is hit, a soft lock screen appears with the option to start a fresh session instantly (no login required).
+
+Additionally, a rolling rate limiter allows a maximum of 20 requests per 60-second window per session. This prevents automated abuse and ensures fair use when the platform is under load.
+
+<br>
+
+<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
+Document Processing Pipeline
+</div>
+
+Documents are processed entirely in-memory — nothing is written to disk. PDFs are parsed with pdfplumber (with PyPDF2 as fallback). DOCX files use python-docx. CSV and plain text files are decoded directly. Documents larger than 28,000 characters are truncated before being sent to the model, to stay within context limits. The truncation point is clearly marked in the output so you know if something was cut.
+
+</div>
+""", unsafe_allow_html=True)
+
+        # ── SECTION 4: Privacy Policy ──────────────────────────────────────
+        with st.expander("🔒  Privacy Policy"):
+            st.markdown("""
+<div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
+
+<div style="font-family:var(--fb);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:-.02em;">
+Privacy Policy — NEXUS Intelligence Platform
+</div>
+
+<div style="font-family:var(--fb);font-size:10px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px;">
+Last updated: 2026 · Effective immediately
+</div>
+
+This privacy policy explains how NEXUS handles your data. The short version: we collect as little as possible, we don't store anything on our end, and your conversations stay in your browser.
+
+<br>
+
+<b style="color:var(--accent);">What We Collect</b>
+
+NEXUS does not collect, store, or transmit any personally identifiable information. There is no user registration, no login system, and no account creation. We do not store your name, email address, IP address, device identifiers, or any other personal data on our servers.
+
+Your chat history, uploaded documents, and conversation context exist solely in your browser's session memory (Streamlit session state). When you close your browser tab or refresh the page, this data is gone permanently from our end. We cannot retrieve it, and we do not attempt to.
+
+<br>
+
+<b style="color:var(--accent);">API Calls and Third-Party Processing</b>
+
+When you send a message, analyze a document, or upload an image, your input is transmitted to Groq's API for inference. This means your text or image data passes through Groq's servers for the purpose of generating a response. NEXUS does not control how Groq handles this data — you should review Groq's own privacy policy at groq.com if you have concerns about their data handling practices.
+
+The Groq API key used by NEXUS is stored as a server-side secret and is never exposed to end users or included in any client-side code.
+
+<br>
+
+<b style="color:var(--accent);">YouTube Transcript Processing</b>
+
+When you use the YouTube feature, NEXUS fetches publicly available transcripts from YouTube's servers using the youtube-transcript-api library. No login, cookies, or YouTube account credentials are used. Only publicly accessible transcript data is retrieved.
+
+<br>
+
+<b style="color:var(--accent);">Cookies and Tracking</b>
+
+NEXUS does not use cookies. We do not use Google Analytics, Facebook Pixel, or any other third-party tracking or analytics service. We do not serve advertisements. There is no tracking of your behavior across sessions.
+
+<br>
+
+<b style="color:var(--accent);">Children's Privacy</b>
+
+NEXUS is not intended for use by individuals under the age of 13. We do not knowingly collect any information from children. If you believe a child has submitted data through this platform, please contact us and we will take appropriate action.
+
+<br>
+
+<b style="color:var(--accent);">Changes to This Policy</b>
+
+If this policy changes in a material way, we will update the "Last updated" date above. Continued use of the platform after changes constitutes acceptance of the revised policy.
+
+</div>
+""", unsafe_allow_html=True)
+
+        # ── SECTION 5: Content Policy ──────────────────────────────────────
+        with st.expander("⊘  Content Policy & Prohibited Uses"):
+            st.markdown("""
+<div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
+
+<div style="font-family:var(--fb);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:-.02em;">
+Content Policy
+</div>
+
+NEXUS runs a strict content safety filter. Certain categories of requests are blocked at multiple levels — before the API call, during the model's processing, and after the response is generated. This is not optional and cannot be bypassed.
+
+<br>
+
+<b style="color:var(--accent);">Absolutely Prohibited</b>
+
+The following categories of content will always be blocked, regardless of framing, context, roleplay setup, fictional wrapping, academic justification, or any other framing technique:
+
+<div style="background:rgba(217,85,85,0.06);border:1px solid rgba(217,85,85,0.2);border-left:2px solid #d95555;border-radius:var(--r-sm);padding:14px 18px;margin:12px 0;font-size:13px;line-height:2.1;">
+⊘ &nbsp; Terrorism, extremist content, attack planning, or recruitment material<br>
+⊘ &nbsp; Instructions for weapons, explosives, or weapons of mass destruction<br>
+⊘ &nbsp; Malware creation, hacking attacks, phishing tools, or cybercrime assistance<br>
+⊘ &nbsp; Any content involving the sexual exploitation of minors<br>
+⊘ &nbsp; Hate speech, genocide planning, or incitement to ethnic or religious violence<br>
+⊘ &nbsp; Detailed methods for suicide or self-harm
+</div>
+
+Attempting to bypass these filters using leet-speak (h@ck, b0mb), Unicode lookalike characters, word-splitting (b.o.m.b), or semantic obfuscation will not work. The safety system operates at the character normalization level, not just at surface pattern matching.
+
+<br>
+
+<b style="color:var(--accent);">What's Allowed</b>
+
+NEXUS is designed for legitimate productivity, research, creative, and educational use. You can ask about cybersecurity concepts from a defensive or educational angle. You can discuss historical violence in an academic context. You can write fiction involving conflict. The filter is designed to catch requests for operational harmful assistance, not to prevent intelligent conversation about difficult topics.
+
+<br>
+
+<b style="color:var(--accent);">Consequences of Policy Violations</b>
+
+Attempted violations are blocked silently at the application level. Repeated attempts within a session may consume rate limit tokens without generating responses. There are no account bans (since there are no accounts), but the filters do not fatigue or weaken with repeated attempts.
+
+</div>
+""", unsafe_allow_html=True)
+
+        # ── SECTION 6: Terms & Conditions ─────────────────────────────────
+        with st.expander("📋  Terms & Conditions — Full Text"):
+            st.markdown("""
+<div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
+
+<div style="font-family:var(--fb);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:6px;letter-spacing:-.02em;">
+Terms and Conditions of Use
+</div>
+<div style="font-family:var(--fb);font-size:10px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;">
+NEXUS Intelligence Platform · v5.1.0 · Effective: 2026
+</div>
+
+Please read these Terms carefully before using NEXUS. By accessing or using this platform in any capacity, you agree to be bound by the terms stated here. If you do not agree with any part of these terms, you should stop using the platform immediately.
+
+<br>
+
+<b style="color:var(--accent);">1. Acceptance of Terms</b>
+
+By using NEXUS, you confirm that you are at least 13 years of age (or the minimum age of digital consent in your jurisdiction, whichever is higher), that you have the legal capacity to enter into this agreement, and that you will use the platform in compliance with all applicable laws and regulations in your country or region.
+
+<br>
+
+<b style="color:var(--accent);">2. Description of Service</b>
+
+NEXUS is a free-to-use, multi-modal AI intelligence platform providing the following core services: document analysis, YouTube transcript intelligence, neural chat, image vision analysis, voice transcription and response, and text transformation. These services are powered by third-party AI inference APIs and are subject to availability.
+
+<br>
+
+<b style="color:var(--accent);">3. Usage Limits and Fair Use</b>
+
+<div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 18px;margin:10px 0;font-size:13px;line-height:2.3;">
+<b style="color:var(--accent);">Free message limit:</b> &nbsp; 15 messages per browser session<br>
+<b style="color:var(--accent);">Rate limit:</b> &nbsp; Maximum 20 requests per 60-second rolling window<br>
+<b style="color:var(--accent);">Session reset:</b> &nbsp; Start a new session anytime — no cooldown required<br>
+<b style="color:var(--accent);">Context window:</b> &nbsp; 128,000 tokens (shared across session)<br>
+<b style="color:var(--accent);">Document size:</b> &nbsp; Up to 200MB upload, 28,000 characters processed<br>
+<b style="color:var(--accent);">Image formats:</b> &nbsp; PNG, JPG, JPEG, WEBP, GIF<br>
+<b style="color:var(--accent);">Document formats:</b> &nbsp; PDF, DOCX, TXT, CSV
+</div>
+
+These limits exist to ensure fair access for all users and to manage infrastructure costs. Attempting to circumvent limits through automation, scripting, or session manipulation is a violation of these terms.
+
+<br>
+
+<b style="color:var(--accent);">4. Prohibited Uses</b>
+
+You agree not to use NEXUS for any of the following purposes:
+
+(a) Generating, planning, or disseminating content related to terrorism, extremism, or political violence of any kind.
+
+(b) Obtaining instructions for creating weapons, explosives, chemical agents, biological agents, radiological devices, or any other instrument designed to cause harm to persons or property.
+
+(c) Creating, distributing, or assisting in the creation of malware, ransomware, trojans, spyware, keyloggers, phishing pages, credential harvesters, or any other malicious software or cyberweapon.
+
+(d) Generating, soliciting, or distributing any content that sexually exploits or endangers minors in any form, whether realistic or fictional.
+
+(e) Creating content designed to incite hatred, violence, or discrimination against any individual or group on the basis of race, ethnicity, religion, nationality, gender, sexual orientation, disability, or any other protected characteristic.
+
+(f) Generating or distributing content that encourages, instructs, or facilitates suicide or self-harm.
+
+(g) Impersonating any individual, organization, or entity in a manner that is deceptive or harmful.
+
+(h) Using the platform for commercial scraping, bulk data harvesting, or any automated use without prior written permission.
+
+(i) Attempting to reverse-engineer, decompile, or extract the underlying model, API keys, or safety filter logic of this platform.
+
+(j) Using the platform in any way that violates applicable laws or regulations in your jurisdiction.
+
+<br>
+
+<b style="color:var(--accent);">5. Intellectual Property</b>
+
+All original design elements, CSS styling, layout architecture, and code structure of NEXUS are the intellectual property of the developer. The underlying AI models are the property of their respective developers and are licensed separately. Content you upload or generate through NEXUS remains your own — we claim no ownership over your inputs or outputs.
+
+<br>
+
+<b style="color:var(--accent);">6. Disclaimer of Warranties</b>
+
+NEXUS is provided on an "as is" and "as available" basis without any warranty of any kind, express or implied. We do not warrant that the platform will be uninterrupted, error-free, completely accurate, or free of harmful components. AI-generated responses may contain inaccuracies, hallucinations, or outdated information. You should not rely on NEXUS output for medical, legal, financial, or any other professional advice without independent verification.
+
+<br>
+
+<b style="color:var(--accent);">7. Limitation of Liability</b>
+
+To the maximum extent permitted by applicable law, the developer of NEXUS shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of or inability to use the platform. This includes, without limitation, damages for loss of data, loss of profits, or any harm resulting from reliance on AI-generated content.
+
+<br>
+
+<b style="color:var(--accent);">8. Third-Party Services</b>
+
+NEXUS relies on the following third-party services: Groq (AI inference), YouTube Transcript API (transcript retrieval), and Streamlit (application framework). Your use of NEXUS implies transmission of data to these services as described in the Privacy Policy. The developer is not responsible for the practices, availability, or content policies of these third-party services.
+
+<br>
+
+<b style="color:var(--accent);">9. Availability and Modifications</b>
+
+NEXUS is offered as a free service and may be modified, suspended, or discontinued at any time without notice. Features may be added, changed, or removed. Usage limits may be adjusted. The developer is not obligated to maintain any specific feature set or uptime guarantee.
+
+<br>
+
+<b style="color:var(--accent);">10. Governing Law</b>
+
+These terms shall be governed by and construed in accordance with the laws of India. Any disputes arising from the use of this platform shall be subject to the exclusive jurisdiction of the courts of India.
+
+<br>
+
+<b style="color:var(--accent);">11. Changes to Terms</b>
+
+These terms may be updated at any time. The most current version will always be visible on this page. Continued use of NEXUS after any modification constitutes your acceptance of the revised terms. If you do not agree to the updated terms, your only recourse is to discontinue use of the platform.
+
+<br>
+
+<b style="color:var(--accent);">12. Contact</b>
+
+If you have questions about these terms, encounter a bug, want to report abuse, or just want to reach out about the platform, you can contact the developer directly. NEXUS is a solo-built project and feedback is taken seriously.
+
+</div>
+""", unsafe_allow_html=True)
+
+        # ── Bottom legal strip ─────────────────────────────────────────────
+        st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="border-top:1px solid var(--border);padding:24px 0 8px;text-align:center;">
+            <div style="font-family:var(--fb);font-size:11px;font-weight:700;
+                        letter-spacing:.1em;text-transform:uppercase;
+                        color:var(--accent);margin-bottom:10px;">
+                NEXUS Intelligence Platform
+            </div>
+            <div style="font-family:var(--fs);font-size:11px;color:var(--tx-3);line-height:2;">
+                Powered by Nexus&nbsp;·&nbsp; v5.1.0 &nbsp;·&nbsp; © 2026<br>
+                All rights reserved &nbsp;·&nbsp; Made in India
+            </div>
+            <div style="margin-top:16px;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;">
+                <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Privacy Policy</span>
+                <span style="color:var(--border);">·</span>
+                <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Terms & Conditions</span>
+                <span style="color:var(--border);">·</span>
+                <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Content Policy</span>
+                <span style="color:var(--border);">·</span>
+                <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Open Source Licenses</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
 # ═══════════════════════════════════════════
 #  ROUTER
 # ═══════════════════════════════════════════
-if st.session_state.app_mode == "landing":
+if False:  # Landing page disabled — direct to app
     render_landing_page()
 else:
     api_key, temperature, model_tier = render_sidebar()
-    render_dashboard(api_key, temperature, model_tier)
+
+    # Check if limit hit
+    _limit_hit = st.session_state.query_count >= FREE_MSG_LIMIT
+    if _limit_hit:
+        st.session_state.locked = True
+
+    if st.session_state.get("locked", False):
+        render_limit_popup()
+    else:
+        # Show free messages counter in top right
+        _remaining = max(0, FREE_MSG_LIMIT - st.session_state.query_count)
+        _color = "#c8a778" if _remaining > 3 else "#d95555"
+        st.markdown(
+            f'<div style="position:fixed;top:14px;right:16px;z-index:9999;'
+            f'background:var(--s2);border:1px solid var(--border);'
+            f'border-radius:20px;padding:5px 12px;'
+            f'font-family:var(--fb);font-size:11px;font-weight:700;color:{_color};">'
+            f'{_remaining} free messages left</div>',
+            unsafe_allow_html=True
+        )
+        render_dashboard(api_key, temperature, model_tier)
