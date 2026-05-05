@@ -1,7 +1,7 @@
 # ============================================================
-#  NEXUS â€” Intelligence Platform  |  app.py  (v5.1)
-#  Themes  : Nova Crystal Â· Arctic Frost Â· Crimson Noir
-#  Stack   : Streamlit Â· Neural Engine Â· youtube-transcript-api
+#  NEXUS — Intelligence Platform  |  app.py  (v5.1)
+#  Themes  : Nova Crystal · Arctic Frost · Crimson Noir
+#  Stack   : Streamlit · Neural Engine · youtube-transcript-api
 #
 #  requirements.txt:
 #    streamlit>=1.31
@@ -18,17 +18,17 @@ import re, os, tempfile, time, json, base64, io, unicodedata
 from datetime import datetime
 
 st.set_page_config(
-    page_title="NEXUS â€” Intelligence Platform",
-    page_icon="â—ˆ",
+    page_title="NEXUS — Intelligence Platform",
+    page_icon="◈",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 FREE_MSG_LIMIT = 15  # Free messages per session before login wall
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 #  THEME DEFINITIONS
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 THEME_VARS = {
     "Nova Crystal": """
 :root {
@@ -111,10 +111,8 @@ THEME_VARS = {
 }
 
 BASE_CSS = """
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Sora:wght@300;400;500;600&display=swap');
 {theme_vars}
 *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
 html, body, [data-testid="stAppViewContainer"] {{
@@ -271,7 +269,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
 .nova-bub-ai .stMarkdown p,
 .nova-bub-user .stMarkdown p {{ margin: 0 0 6px 0; }}
 [data-testid="InputInstructions"] {{ display: none !important; }}
-/* â”€â”€ Login Wall â”€â”€ */
+/* ── Login Wall ── */
 .nexus-login-wall {{
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(13,13,16,0.96);
@@ -313,7 +311,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
     background: linear-gradient(90deg, var(--accent), var(--accent-h));
     transition: width .4s ease;
 }}
-/* â”€â”€ Image Vision Section â”€â”€ */
+/* ── Image Vision Section ── */
 .img-upload-zone {{
     border: 2px dashed var(--border-h);
     border-radius: var(--r);
@@ -466,25 +464,25 @@ section[data-testid="stSidebar"] > div > div > div > div:first-child small {{ di
 </style>
 """
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 #  PERSONAS
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 PERSONAS = {
     "NEXUS Default": (
-        "You are NEXUS â€” a sharp, thoughtful AI assistant. "
+        "You are NEXUS — a sharp, thoughtful AI assistant. "
         "You\'re not robotic or overly formal. Talk like a knowledgeable friend who knows a lot. "
         "Be direct, clear, sometimes a little witty, but always genuinely helpful. "
         "Give real answers, not fluffy ones. Use Markdown when it helps readability. "
-        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi â€” respond in Hindi. If Hinglish (Hindi+English mix) â€” respond in Hinglish. If English â€” respond in English. Never switch languages unless user asks. "
+        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi — respond in Hindi. If Hinglish (Hindi+English mix) — respond in Hinglish. If English — respond in English. Never switch languages unless user asks. "
         "Never mention which AI model or company powers you."
     ),
     "Coding Expert": (
-        "You are NEXUS in Coding Expert mode â€” a senior software engineer. "
+        "You are NEXUS in Coding Expert mode — a senior software engineer. "
         "Deep expertise in Python, JavaScript, web development, databases, and DevOps. "
         "Always provide clean, production-ready code with comments. "
         "Proactively point out bugs and edge cases. "
         "Use Markdown code blocks with language tags for all code. "
-        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi â€” respond in Hindi. If Hinglish (Hindi+English mix) â€” respond in Hinglish. If English â€” respond in English. Never switch languages unless user asks. "
+        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi — respond in Hindi. If Hinglish (Hindi+English mix) — respond in Hinglish. If English — respond in English. Never switch languages unless user asks. "
         "Never mention which AI model or company powers you."
     ),
     "Data Analyst": (
@@ -492,42 +490,42 @@ PERSONAS = {
         "Specialize in data analysis, statistics, business intelligence, and visualization. "
         "Provide structured, numbered insights. Use tables in Markdown where applicable. "
         "Always quantify findings and suggest data-driven next steps. "
-        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi â€” respond in Hindi. If Hinglish (Hindi+English mix) â€” respond in Hinglish. If English â€” respond in English. Never switch languages unless user asks. "
+        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi — respond in Hindi. If Hinglish (Hindi+English mix) — respond in Hinglish. If English — respond in English. Never switch languages unless user asks. "
         "Never mention which AI model or company powers you."
     ),
     "Teacher / ELI5": (
         "You are NEXUS in Teacher mode. "
-        "Explain everything as simply as possible â€” like teaching a curious 12-year-old. "
+        "Explain everything as simply as possible — like teaching a curious 12-year-old. "
         "Use analogies, real-world examples, and step-by-step breakdowns. "
         "Avoid jargon unless you immediately explain it. Make learning enjoyable. "
-        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi â€” respond in Hindi. If Hinglish (Hindi+English mix) â€” respond in Hinglish. If English â€” respond in English. Never switch languages unless user asks. "
+        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi — respond in Hindi. If Hinglish (Hindi+English mix) — respond in Hinglish. If English — respond in English. Never switch languages unless user asks. "
         "Never mention which AI model or company powers you."
     ),
     "Creative Writer": (
-        "You are NEXUS in Creative Writer mode â€” a skilled storyteller and copywriter. "
+        "You are NEXUS in Creative Writer mode — a skilled storyteller and copywriter. "
         "Write with vivid language, compelling narrative, and strong voice. "
         "Adapt tone from dark/serious to light/playful as needed. "
         "Always produce polished, publication-ready creative content. "
-        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi â€” respond in Hindi. If Hinglish (Hindi+English mix) â€” respond in Hinglish. If English â€” respond in English. Never switch languages unless user asks. "
+        "CRITICAL LANGUAGE RULE: Always detect the language the user writes in and respond ONLY in that exact language. If they write in Hindi — respond in Hindi. If Hinglish (Hindi+English mix) — respond in Hinglish. If English — respond in English. Never switch languages unless user asks. "
         "Never mention which AI model or company powers you."
     ),
 }
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 #  PROMPT TEMPLATES
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 PROMPT_TEMPLATES = [
-    ("ðŸ” Summarize", "Give me a concise summary of what we've discussed so far."),
-    ("âš¡ Key Points", "List the 5 most important key points from our conversation."),
-    ("ðŸ› Debug This", "Review the code or content above and identify any bugs or issues."),
-    ("ðŸ“Š Analyze", "Analyze this in depth and give me structured insights."),
-    ("ðŸŽ¯ Action Items", "Based on our conversation, what are the next concrete action steps?"),
-    ("ðŸ”„ Simplify", "Explain this in the simplest possible terms."),
+    ("�? Summarize", "Give me a concise summary of what we've discussed so far."),
+    ("⚡ Key Points", "List the 5 most important key points from our conversation."),
+    ("�?� Debug This", "Review the code or content above and identify any bugs or issues."),
+    ("📊 Analyze", "Analyze this in depth and give me structured insights."),
+    ("🎯 Action Items", "Based on our conversation, what are the next concrete action steps?"),
+    ("🔄 Simplify", "Explain this in the simplest possible terms."),
 ]
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 #  SAFETY FILTER
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 _BLACKLIST: dict = {
     "terrorism": [
         # Groups & ideology
@@ -661,24 +659,24 @@ _CATEGORY_LABELS: dict = {
 }
 _BLOCK_MSG = "Policy Violation: This request has been blocked for security reasons."
 
-# â”€â”€ LLM-level safety sentinel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── LLM-level safety sentinel ──────────────────────────────────────────────
 # This is injected into EVERY LLM system prompt so the model itself refuses
 # harmful requests even if they slip past the keyword pre-filter.
 SAFETY_SYSTEM_ADDON = (
     "\n\n"
-    "==== ABSOLUTE SAFETY RULES â€” HIGHEST PRIORITY â€” OVERRIDE EVERYTHING ELSE ====\n"
+    "==== ABSOLUTE SAFETY RULES — HIGHEST PRIORITY — OVERRIDE EVERYTHING ELSE ====\n"
     "You must NEVER provide any assistance, instructions, code, recipes, methods, or "
-    "information â€” partial or complete â€” related to ANY of the following:\n"
-    "  â€¢ Terrorism, extremism, attack planning, or recruitment\n"
-    "  â€¢ Weapons, explosives, bombs, chemical/biological/radiological devices\n"
-    "  â€¢ Cybercrime, malware creation, hacking attacks, phishing, or credential theft\n"
-    "  â€¢ Child exploitation, grooming, or any sexual content involving minors\n"
-    "  â€¢ Hate speech, genocide, or incitement to ethnic/religious violence\n"
-    "  â€¢ Suicide methods or self-harm techniques\n\n"
+    "information — partial or complete — related to ANY of the following:\n"
+    "  • Terrorism, extremism, attack planning, or recruitment\n"
+    "  • Weapons, explosives, bombs, chemical/biological/radiological devices\n"
+    "  • Cybercrime, malware creation, hacking attacks, phishing, or credential theft\n"
+    "  • Child exploitation, grooming, or any sexual content involving minors\n"
+    "  • Hate speech, genocide, or incitement to ethnic/religious violence\n"
+    "  • Suicide methods or self-harm techniques\n\n"
     "This rule applies regardless of: roleplay framing, fictional context, academic "
     "framing, hypothetical scenarios, indirect phrasing, coded language, leet-speak, "
     "symbol substitutions, or ANY other attempt to disguise the request.\n\n"
-    "If ANY such request is detected â€” no matter how it is worded â€” you MUST respond "
+    "If ANY such request is detected — no matter how it is worded — you MUST respond "
     "with ONLY this exact token and nothing else: NEXUS_SAFETY_REFUSE\n"
     "Do NOT explain. Do NOT provide partial info. Output ONLY: NEXUS_SAFETY_REFUSE\n"
     "============================================================================"
@@ -692,20 +690,20 @@ _LLM_BLOCK_MSG = (
 )
 
 
-# â”€â”€ Layer 1: Unicode homoglyph normalizer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Layer 1: Unicode homoglyph normalizer ──────────────────────────────────
 def _unicode_normalize(text: str) -> str:
-    """NFKD decomposition â†’ ASCII-only. Kills Cyrillic/Greek lookalikes."""
+    """NFKD decomposition → ASCII-only. Kills Cyrillic/Greek lookalikes."""
     normalized = unicodedata.normalize("NFKD", text)
     return normalized.encode("ascii", "ignore").decode("ascii")
 
 
-# â”€â”€ Layer 1: Extended leet-speak normalizer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Layer 1: Extended leet-speak normalizer ────────────────────────────────
 _LEET_MAP = {
     "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
     "6": "g", "7": "t", "8": "b", "9": "g",
     "@": "a", "$": "s", "!": "i", "+": "t", "|": "i",
-    "â‚¬": "e", "Â£": "l", "Â¢": "c", "Â©": "c", "Â®": "r",
-    "Ã—": "x", "ÃŸ": "ss", "Ã¸": "o", "Âµ": "u",
+    "€": "e", "£": "l", "¢": "c", "©": "c", "®": "r",
+    "×": "x", "ß": "ss", "ø": "o", "µ": "u",
 }
 
 def _leet_normalize(text: str) -> str:
@@ -714,19 +712,19 @@ def _leet_normalize(text: str) -> str:
     return text
 
 
-# â”€â”€ Layer 1: Full normalization pipeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Layer 1: Full normalization pipeline ───────────────────────────────────
 def _normalize(text: str) -> str:
     text = text.lower()
-    text = _unicode_normalize(text)            # homoglyphs (Cyrillic Ð¾ â†’ o)
-    text = _leet_normalize(text)               # leet speak (h@ck â†’ hack)
-    # Remove character-splitting: "b.o.m.b" â†’ "bomb", "b o m b" â†’ "bomb"
+    text = _unicode_normalize(text)            # homoglyphs (Cyrillic о → o)
+    text = _leet_normalize(text)               # leet speak (h@ck → hack)
+    # Remove character-splitting: "b.o.m.b" → "bomb", "b o m b" → "bomb"
     text = re.sub(r"(?<=[a-z])[.\-_*\s]+(?=[a-z])", "", text)
-    text = re.sub(r"[^a-z0-9\s]", " ", text)  # remaining specials â†’ space
+    text = re.sub(r"[^a-z0-9\s]", " ", text)  # remaining specials → space
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
 
-# â”€â”€ Layer 1: Keyword pre-filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Layer 1: Keyword pre-filter ────────────────────────────────────────────
 def is_safe(prompt: str) -> tuple:
     cleaned = _normalize(prompt)
     for category, terms in _BLACKLIST.items():
@@ -746,7 +744,7 @@ def show_block_error(category: str):
                 padding:16px 20px; margin:10px 0;">
         <div style="font-family:var(--fb); font-size:11px; font-weight:700;
                     letter-spacing:.1em; text-transform:uppercase; color:#d95555; margin-bottom:6px;">
-            âŠ˜ Security Block â€” {label}
+            ⊘ Security Block — {label}
         </div>
         <div style="font-family:var(--fs); font-size:13px; color:#eae8e1; line-height:1.65;">
             {_BLOCK_MSG}
@@ -755,9 +753,9 @@ def show_block_error(category: str):
     """, unsafe_allow_html=True)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 #  RATE LIMITER
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 RATE_LIMIT_MAX    = 20
 RATE_LIMIT_WINDOW = 60
 
@@ -778,18 +776,18 @@ def approx_tokens(text: str) -> int:
     return max(1, int(len(text.split()) * 1.35))
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  NEURAL ENGINE â€” Groq Backend + Auto Fallback
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
+#  NEURAL ENGINE — Groq Backend + Auto Fallback
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 
-# Internal model mapping â€” not shown in UI
+# Internal model mapping — not shown in UI
 MODEL_MAP = {
     "Ultra":    "llama-3.3-70b-versatile",
     "Balanced": "llama3-70b-8192",        # stable older 70b, not deprecated
     "Fast":     "llama-3.1-8b-instant",
 }
 
-VISION_MODEL   = "llama-3.2-11b-vision-preview"
+VISION_MODEL   = "llama-3.2-90b-vision-preview"
 WHISPER_MODEL  = "whisper-large-v3"
 
 FALLBACK_MODELS = [
@@ -818,7 +816,7 @@ def _call_groq(api_key: str, messages: list, model: str, temperature: float, str
 
 def _call_with_fallback(api_key: str, messages: list, primary_model: str, temperature: float) -> str:
     """Try primary model, then fallback chain. Injects safety into all system prompts."""
-    # â”€â”€ Inject safety addon into every system message (Layer 2) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Inject safety addon into every system message (Layer 2) ──────────
     safe_messages = []
     has_system = False
     for msg in messages:
@@ -837,7 +835,7 @@ def _call_with_fallback(api_key: str, messages: list, primary_model: str, temper
             resp = _call_groq(api_key, safe_messages, model, temperature)
             content = resp.choices[0].message.content
 
-            # â”€â”€ Layer 2 post-check: LLM refused with sentinel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            # ── Layer 2 post-check: LLM refused with sentinel ─────────────
             if content and "NEXUS_SAFETY_REFUSE" in content.strip():
                 return _LLM_BLOCK_MSG
 
@@ -845,17 +843,17 @@ def _call_with_fallback(api_key: str, messages: list, primary_model: str, temper
         except Exception as e:
             last_error = str(e)
             if "invalid_api_key" in last_error.lower() or "authentication" in last_error.lower():
-                return "âŒ API Key galat hai. Sahi key daalo sidebar mein."
+                return "�?� API Key galat hai. Sahi key daalo sidebar mein."
             if "rate_limit" in last_error.lower():
                 time.sleep(1)
                 continue
             continue
-    return f"âŒ Abhi kuch dikkat aa rahi hai, thodi der baad try karo. ({last_error[:80]})"
+    return f"�?� Abhi kuch dikkat aa rahi hai, thodi der baad try karo. ({last_error[:80]})"
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 #  HELPERS
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 
 def _extract_pdf_text(file_bytes: bytes) -> str:
     try:
@@ -892,16 +890,16 @@ def _extract_docx_text(file_bytes: bytes) -> str:
         return f"[ERROR] Could not read DOCX: {e}"
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  BACKEND â€” Validate Key
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
+#  BACKEND — Validate Key
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 def validate_api_key(api_key: str) -> tuple:
     if not api_key or len(api_key.strip()) < 20:
         return False, "Key too short or empty."
     try:
         resp = _call_groq(api_key, [{"role": "user", "content": "Say OK"}], "llama-3.1-8b-instant", 0.1)
         if resp.choices[0].message.content:
-            return True, "API Key is valid âœ“"
+            return True, "API Key is valid ✓"
         return False, "Unexpected empty response."
     except Exception as e:
         err = str(e)
@@ -912,15 +910,15 @@ def validate_api_key(api_key: str) -> tuple:
         return False, f"Error: {err[:80]}"
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  BACKEND â€” Document Analysis
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
+#  BACKEND — Document Analysis
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 def analyze_document(
     file, api_key: str, temperature: float, model_tier: str, analysis_type: str,
     opt_hyperlinks: bool, opt_tables: bool, opt_images: bool, opt_pii: bool, opt_quotes: bool,
 ) -> str:
     if not api_key:
-        return "âš ï¸ API Key nahi hai. Sidebar mein key daalo."
+        return "� �? API Key nahi hai. Sidebar mein key daalo."
     try:
         file.seek(0)
         file_bytes = file.read()
@@ -931,7 +929,7 @@ def analyze_document(
         elif file_name.endswith(".docx"):
             content = _extract_docx_text(file_bytes)
             if content.startswith("[ERROR]"):
-                return f"âŒ {content}"
+                return f"�?� {content}"
         elif file_name.endswith(".csv"):
             content = file_bytes.decode("utf-8", errors="ignore")
         else:
@@ -975,16 +973,16 @@ def analyze_document(
                 "**Q:** [question]\n**A:** [detailed answer]\n\n"
                 "Cover factual, inferential, and analytical questions.\n"
             ),
-            "ðŸ”¥ Roast My Document": (
+            "🔥 Roast My Document": (
                 "You are a brutally honest, witty critic. ROAST this document mercilessly:\n"
                 "1. What's embarrassingly wrong or weak about it\n"
                 "2. The most cringe-worthy parts\n"
                 "3. What a smart 10-year-old would do better\n"
                 "4. A savage one-line summary\n"
                 "5. Three serious improvements (after the roast)\n"
-                "Be funny but constructive. Use ðŸ”¥ emoji liberally.\n"
+                "Be funny but constructive. Use 🔥 emoji liberally.\n"
             ),
-            "ðŸ§’ ELI5 â€” Explain Simply": (
+            "🧒 ELI5 — Explain Simply": (
                 "Explain this document as if talking to a curious 10-year-old:\n"
                 "1. What is this about? (1-2 simple sentences)\n"
                 "2. The main idea in plain English\n"
@@ -992,7 +990,7 @@ def analyze_document(
                 "4. 3 things to remember\n"
                 "Use simple words, short sentences, fun analogies. No jargon.\n"
             ),
-            "âœ¨ Vibe Check": (
+            "✨ Vibe Check": (
                 "Do a VIBE CHECK on this document:\n"
                 "1. Overall vibe: [confident/anxious/corporate/creative/etc]\n"
                 "2. Emotional tone analysis\n"
@@ -1001,7 +999,7 @@ def analyze_document(
                 "5. Who wrote this? (guess the author's personality)\n"
                 "6. Vibe summary in one emoji + one sentence\n"
             ),
-            "âš”ï¸ Debate This": (
+            "⚔�? Debate This": (
                 "Generate a structured DEBATE on the main claims in this document:\n"
                 "**PRO (Supporting arguments):**\n"
                 "1. [strong argument for]\n2. [strong argument for]\n3. [strong argument for]\n\n"
@@ -1030,18 +1028,18 @@ def analyze_document(
         return _call_with_fallback(api_key, messages, primary_model, temperature)
 
     except Exception as e:
-        return f"âŒ Error: {str(e)[:100]}"
+        return f"�?� Error: {str(e)[:100]}"
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  BACKEND â€” Image Vision
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
+#  BACKEND — Image Vision
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 def analyze_image(
     image_bytes: bytes, mime_type: str, question: str,
     api_key: str, temperature: float, model_tier: str,
 ) -> str:
     if not api_key:
-        return "âš ï¸ API Key nahi hai. Sidebar mein key daalo."
+        return "� �? API Key nahi hai. Sidebar mein key daalo."
     try:
         image_b64 = base64.b64encode(image_bytes).decode()
         prompt_text = question if question.strip() else (
@@ -1076,28 +1074,28 @@ def analyze_image(
     except Exception as e:
         err = str(e)
         if "invalid_api_key" in err.lower() or "authentication" in err.lower():
-            return "âŒ API Key galat hai."
+            return "�?� API Key galat hai."
         elif "rate_limit" in err.lower():
-            return "âŒ Rate limit hit hua. Thodi der baad try karo."
+            return "�?� Rate limit hit hua. Thodi der baad try karo."
         else:
-            return f"âŒ Image analysis error: {err[:100]}"
+            return f"�?� Image analysis error: {err[:100]}"
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  BACKEND â€” YouTube
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
+#  BACKEND — YouTube
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 def analyze_youtube(
     url: str, api_key: str, temperature: float, model_tier: str,
     yt_mode: str, output_format: str,
 ) -> str:
     if not api_key:
-        return "âš ï¸ API Key nahi hai. Sidebar mein key daalo."
+        return "� �? API Key nahi hai. Sidebar mein key daalo."
     try:
         from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
 
         match = re.search(r"(?:v=|youtu\.be/|embed/)([^&\n?#]{11})", url)
         if not match:
-            return "âŒ Invalid YouTube URL. Format: `https://www.youtube.com/watch?v=VIDEO_ID`"
+            return "�?� Invalid YouTube URL. Format: `https://www.youtube.com/watch?v=VIDEO_ID`"
 
         video_id = match.group(1)
 
@@ -1105,21 +1103,21 @@ def analyze_youtube(
             # youtube-transcript-api >= 0.6.0: instance method
             ytt = YouTubeTranscriptApi()
             transcript_list = ytt.get_transcript(video_id, languages=["en", "hi", "en-IN"])
-        except TypeError:
+        except (TypeError, AttributeError):
             # Fallback for older library versions (class method)
             try:
                 transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=["en", "hi", "en-IN"])
             except Exception as e2:
-                return f"âŒ Transcript fetch nahi hua: {str(e2)[:80]}"
+                return f"�?� Transcript fetch nahi hua: {str(e2)[:80]}"
         except NoTranscriptFound:
             try:
                 ytt2 = YouTubeTranscriptApi()
                 transcripts = ytt2.list(video_id)
                 transcript_list = transcripts.find_generated_transcript(["en", "hi"]).fetch()
             except Exception:
-                return "âŒ Is video mein transcript available nahi hai."
+                return "�?� Is video mein transcript available nahi hai."
         except TranscriptsDisabled:
-            return "âŒ Is video mein transcripts disabled hain."
+            return "�?� Is video mein transcripts disabled hain."
 
         full_text = ""
         for entry in transcript_list:
@@ -1133,11 +1131,11 @@ def analyze_youtube(
         mode_prompts = {
             "Full Transcript + Summary": (
                 "Analyze this YouTube transcript:\n"
-                "1. **Video Summary** â€” 3-4 line overview\n"
-                "2. **Key Moments** â€” Important timestamps\n"
-                "3. **Main Topics** â€” List of topics\n"
-                "4. **Actionable Insights** â€” Key takeaways\n"
-                "5. **Notable Quotes** â€” 2-3 important lines\n"
+                "1. **Video Summary** — 3-4 line overview\n"
+                "2. **Key Moments** — Important timestamps\n"
+                "3. **Main Topics** — List of topics\n"
+                "4. **Actionable Insights** — Key takeaways\n"
+                "5. **Notable Quotes** — 2-3 important lines\n"
             ),
             "Key Moments & Timestamps": (
                 "Extract KEY MOMENTS with timestamps:\n"
@@ -1166,7 +1164,7 @@ def analyze_youtube(
                 "4. Emotional tone summary\n"
                 "5. Present as a table: [Timestamp | Topic | Sentiment | Reason]\n"
             ),
-            "ðŸ“ Quiz Generator": (
+            "�? Quiz Generator": (
                 "Generate a QUIZ from this video content:\n"
                 "Create 10 MCQ questions with 4 options each.\n"
                 "Format:\n"
@@ -1175,7 +1173,7 @@ def analyze_youtube(
                 "**Answer:** [correct option]\n\n"
                 "Cover key concepts from across the video. Vary difficulty.\n"
             ),
-            "ðŸ“– Chapter Detection": (
+            "📖 Chapter Detection": (
                 "Detect CHAPTERS in this video transcript:\n"
                 "Identify natural topic transitions and create chapter markers:\n"
                 "| # | Timestamp | Chapter Title | Duration | Summary |\n"
@@ -1188,7 +1186,7 @@ def analyze_youtube(
             "Detailed Report":  "Present as a well-structured Markdown report with headers.",
             "Bullet Points":    "Present EVERYTHING as concise bullet points only. No paragraphs.",
             "Twitter/X Thread": (
-                "Format as a Twitter/X thread. Start with 'ðŸ§µ 1/' and number each tweet. "
+                "Format as a Twitter/X thread. Start with '🧵 1/' and number each tweet. "
                 "Each tweet max 280 chars. Make it engaging and shareable."
             ),
             "Email Brief": (
@@ -1211,17 +1209,17 @@ def analyze_youtube(
         return _call_with_fallback(api_key, messages, primary_model, temperature)
 
     except ImportError:
-        return "âŒ `youtube-transcript-api` install nahi hai. requirements.txt mein add karo."
+        return "�?� `youtube-transcript-api` install nahi hai. requirements.txt mein add karo."
     except Exception as e:
-        return f"âŒ Error: {str(e)[:100]}"
+        return f"�?� Error: {str(e)[:100]}"
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  BACKEND â€” Neural Chat
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
+#  BACKEND — Neural Chat
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 def neural_chat_response(messages: list, api_key: str, temperature: float, model_tier: str, persona: str = "NEXUS Default") -> str:
     if not api_key:
-        return "âš ï¸ API Key nahi hai. Sidebar mein key daalo."
+        return "� �? API Key nahi hai. Sidebar mein key daalo."
 
     system_prompt = PERSONAS.get(persona, PERSONAS["NEXUS Default"])
     primary_model = MODEL_MAP.get(model_tier, MODEL_MAP["Ultra"])
@@ -1234,9 +1232,9 @@ def neural_chat_response(messages: list, api_key: str, temperature: float, model
     return _call_with_fallback(api_key, groq_messages, primary_model, temperature)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  BACKEND â€” Voice Transcription
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
+#  BACKEND — Voice Transcription
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 def transcribe_voice(audio_bytes: bytes, api_key: str) -> str:
     try:
         client = _groq_client(api_key)
@@ -1250,18 +1248,18 @@ def transcribe_voice(audio_bytes: bytes, api_key: str) -> str:
         return f"[Transcription error: {str(e)[:80]}]"
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─────────────────────────────────────────────
 #  SESSION STATE INIT
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─────────────────────────────────────────────
 INITIAL_GREETING = {
     "role": "assistant",
     "content": (
-        "Hey! Main NEXUS hoon â€” tumhara AI intelligence platform.\n\n"
+        "Hey! Main NEXUS hoon — tumhara AI intelligence platform.\n\n"
         "Main kar sakta hoon:\n"
-        "- ðŸ“„ Documents analyze karna (PDF, DOCX, TXT, CSV)\n"
-        "- â–¶ï¸ YouTube videos summarize karna timestamps ke saath\n"
-        "- ðŸ–¼ï¸ Images analyze karna\n"
-        "- ðŸ’¬ Kisi bhi sawaal ka jawab dena\n\n"
+        "- 📄 Documents analyze karna (PDF, DOCX, TXT, CSV)\n"
+        "- ▶�? YouTube videos summarize karna timestamps ke saath\n"
+        "- 🖼�? Images analyze karna\n"
+        "- 💬 Kisi bhi sawaal ka jawab dena\n\n"
         "Batao, aaj kya kaam hai?"
     )
 }
@@ -1293,10 +1291,10 @@ def _init_state():
 _init_state()
 
 theme_vars = THEME_VARS.get(st.session_state.theme, THEME_VARS["Nova Crystal"])
-st.markdown(BASE_CSS.format(theme_vars=theme_vars), unsafe_allow_html=True)
+st.html(BASE_CSS.format(theme_vars=theme_vars))
 
-# â”€â”€â”€ Long-press context menu JS â”€â”€â”€
-st.markdown("""
+# ─── Long-press context menu JS ───
+st.html("""
 <script>
 (function() {
     let pressTimer = null;
@@ -1328,12 +1326,12 @@ st.markdown("""
         menu.style.top = my + 'px';
 
         const items = [
-            { icon: 'ðŸ“‹', label: 'Copy', action: () => {
-                navigator.clipboard.writeText(text).then(() => showToast('âœ“ Copied!'));
+            { icon: '📋', label: 'Copy', action: () => {
+                navigator.clipboard.writeText(text).then(() => showToast('✓ Copied!'));
                 removeMenu();
             }},
             { sep: true },
-            { icon: 'âœï¸', label: 'Edit in Chat', action: () => {
+            { icon: '�?�?', label: 'Edit in Chat', action: () => {
                 const inp = document.querySelector('[data-testid="stTextInput"] input');
                 if (inp) {
                     inp.focus();
@@ -1403,20 +1401,20 @@ st.markdown("""
     setInterval(attachHandlers, 1200);
 })();
 </script>
-""", unsafe_allow_html=True)
+""")
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 #  LANDING PAGE
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 def render_landing_page():
     st.markdown("""
     <div class="nova-landing">
         <div class="nova-landing-mark">N</div>
-        <div class="nova-landing-eyebrow">Intelligence Platform Â· v5.1</div>
+        <div class="nova-landing-eyebrow">Intelligence Platform · v5.1</div>
         <div class="nova-landing-title">NEXUS<span>.</span></div>
         <div class="nova-landing-sub">
-            Next-generation multi-modal AI â€” document analysis,<br>
+            Next-generation multi-modal AI — document analysis,<br>
             video intelligence, image vision &amp; neural chat.
         </div>
     </div>
@@ -1430,20 +1428,20 @@ def render_landing_page():
 
     st.markdown("""
     <div style="text-align:center; margin-top:44px; display:flex; justify-content:center; gap:18px; flex-wrap:wrap;">
-        <span class="nova-chip">â—ˆ Document Intelligence</span>
-        <span class="nova-chip">â–¶ YouTube Architect</span>
-        <span class="nova-chip">â—Ž Neural Chat</span>
-        <span class="nova-chip">ðŸ–¼ Image Vision</span>
-        <span class="nova-chip">â—‰ Voice Command</span>
+        <span class="nova-chip">◈ Document Intelligence</span>
+        <span class="nova-chip">▶ YouTube Architect</span>
+        <span class="nova-chip">◎ Neural Chat</span>
+        <span class="nova-chip">🖼 Image Vision</span>
+        <span class="nova-chip">◉ Voice Command</span>
     </div>
     """, unsafe_allow_html=True)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 #  SIDEBAR
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 def render_limit_popup():
-    """Show a friendly limit-reached popup â€” no API key, just start a new chat."""
+    """Show a friendly limit-reached popup — no API key, just start a new chat."""
     limit = FREE_MSG_LIMIT
 
     _, center, _ = st.columns([1, 2, 1])
@@ -1453,7 +1451,7 @@ def render_limit_popup():
             <div style="width:64px;height:64px;border-radius:16px;
                         background:var(--accent-glow);border:1px solid var(--accent-ring);
                         display:inline-flex;align-items:center;justify-content:center;
-                        font-size:28px;margin-bottom:22px;">âœ¦</div>
+                        font-size:28px;margin-bottom:22px;">✦</div>
             <div style="display:inline-block;background:var(--accent-glow);
                         border:1px solid var(--accent-ring);border-radius:20px;
                         padding:4px 16px;font-family:var(--fb);font-size:10px;
@@ -1467,14 +1465,14 @@ def render_limit_popup():
             </div>
             <div style="font-family:var(--fs);font-size:14px;color:var(--tx-2);
                         line-height:1.85;max-width:340px;margin:0 auto 32px;">
-                No worries â€” just start a fresh session.<br>
+                No worries — just start a fresh session.<br>
                 Click <strong style="color:var(--accent);">New Chat</strong> to reset
-                and continue enjoying NEXUS. âœ¨
+                and continue enjoying NEXUS. ✨
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Progress bar â€” full
+        # Progress bar — full
         st.markdown("""
         <div style="max-width:300px;margin:0 auto 32px;background:var(--s2);
                     border-radius:8px;height:5px;overflow:hidden;">
@@ -1484,7 +1482,7 @@ def render_limit_popup():
         """, unsafe_allow_html=True)
 
         # Single CTA button
-        if st.button("âœ¦  New Chat â€” Continue Free", use_container_width=True,
+        if st.button("✦  New Chat — Continue Free", use_container_width=True,
                      type="primary", key="limit_new_chat_btn"):
             _save_current_session()
             st.session_state.chat_history  = [INITIAL_GREETING]
@@ -1492,14 +1490,14 @@ def render_limit_popup():
             st.session_state.input_counter += 1
             st.session_state.query_count   = 0
             st.session_state.locked        = False
-            st.toast("âœ¦ Fresh session started! Enjoy NEXUS.", icon="âœ…")
+            st.toast("✦ Fresh session started! Enjoy NEXUS.", icon="✅")
             st.rerun()
 
         st.markdown(
             '<div style="text-align:center;font-size:11px;color:var(--tx-3);'
             'font-family:var(--fb);margin-top:18px;line-height:1.7;">'
             'Your conversation history is saved in the sidebar.<br>'
-            'New chat gives you another full session â€” completely free.'
+            'New chat gives you another full session — completely free.'
             '</div>',
             unsafe_allow_html=True
         )
@@ -1588,7 +1586,7 @@ def render_sidebar():
             pass
 
         if show_settings:
-            # api_key always comes from server secret â€” no user input
+            # api_key always comes from server secret — no user input
             api_key = _secret_key
 
             # Theme
@@ -1651,7 +1649,7 @@ def render_sidebar():
             <div class="nexus-avatar">N</div>
             <div>
                 <div style="font-family:var(--fb);font-size:12px;font-weight:600;color:var(--tx);">NEXUS User</div>
-                <div style="font-size:10px;color:var(--tx-3);font-family:var(--fb);">v5.1 Â· Neural Engine</div>
+                <div style="font-size:10px;color:var(--tx-3);font-family:var(--fb);">v5.1 · Neural Engine</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1659,7 +1657,7 @@ def render_sidebar():
     return api_key, temperature, model_tier
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 def render_chat_history(history: list):
     for i, msg in enumerate(history):
         role    = msg["role"]
@@ -1693,9 +1691,9 @@ def render_chat_history(history: list):
         st.markdown("<div style='margin-bottom:8px;'></div>", unsafe_allow_html=True)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 #  CHAT EXPORT
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 def build_chat_export(history: list, fmt: str = "md") -> str:
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     lines = [f"# NEXUS Chat Export\n_Exported: {ts}_\n\n---\n"]
@@ -1710,9 +1708,9 @@ def build_chat_export(history: list, fmt: str = "md") -> str:
     return "".join(lines)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 #  DASHBOARD
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 def render_dashboard(api_key, temperature, model_tier):
 
     st.markdown("""
@@ -1737,38 +1735,38 @@ def render_dashboard(api_key, temperature, model_tier):
 
     st.markdown("""
     <div class="nova-chip-row">
-        <span class="nova-chip">â—ˆ Real-Time Analysis</span>
-        <span class="nova-chip">â—Ž Multi-Modal</span>
-        <span class="nova-chip">â–£ Auto Fallback</span>
-        <span class="nova-chip">â—ˆ Encrypted Keys</span>
-        <span class="nova-chip">â—‰ Voice Commands</span>
-        <span class="nova-chip">â–¤ PDF Intelligence</span>
-        <span class="nova-chip">â–¶ Video Insights</span>
-        <span class="nova-chip">ðŸ–¼ Image Vision</span>
+        <span class="nova-chip">◈ Real-Time Analysis</span>
+        <span class="nova-chip">◎ Multi-Modal</span>
+        <span class="nova-chip">▣ Auto Fallback</span>
+        <span class="nova-chip">◈ Encrypted Keys</span>
+        <span class="nova-chip">◉ Voice Commands</span>
+        <span class="nova-chip">▤ PDF Intelligence</span>
+        <span class="nova-chip">▶ Video Insights</span>
+        <span class="nova-chip">🖼 Image Vision</span>
     </div>
     """, unsafe_allow_html=True)
 
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-        "  â—ˆ  Document  ",
-        "  â–¶  YouTube  ",
-        "  â—Ž  Neural Chat  ",
-        "  ðŸ–¼  Image Vision  ",
-        "  â—‰  Voice  ",
-        "  ðŸ”„  Transform  ",
-        "  â“˜  About & Legal  ",
+        "  ◈  Document  ",
+        "  ▶  YouTube  ",
+        "  ◎  Neural Chat  ",
+        "  🖼  Image Vision  ",
+        "  ◉  Voice  ",
+        "  🔄  Transform  ",
+        "  ⓘ  About & Legal  ",
     ])
 
-    # â•â•â• TAB 1: Document â•â•â•
+    # �?�?�? TAB 1: Document �?�?�?
     with tab1:
         col_main, col_side = st.columns([3, 2], gap="large")
         with col_main:
             st.markdown("""
             <div class="nova-card">
                 <div class="nova-card-header">
-                    <div class="nova-card-icon">â—ˆ</div>
+                    <div class="nova-card-icon">◈</div>
                     <div>
                         <div class="nova-card-title">Document Intelligence Engine</div>
-                        <div class="nova-card-sub">PDF Â· DOCX Â· TXT Â· CSV â€” Multi-format analysis</div>
+                        <div class="nova-card-sub">PDF · DOCX · TXT · CSV — Multi-format analysis</div>
                     </div>
                 </div>
             </div>
@@ -1776,9 +1774,9 @@ def render_dashboard(api_key, temperature, model_tier):
 
             st.markdown("""
             <div class="nova-drop-zone">
-                <div class="nova-drop-icon">â–²</div>
+                <div class="nova-drop-icon">▲</div>
                 <div class="nova-drop-title">Drag &amp; Drop Your Document</div>
-                <div class="nova-drop-sub">PDF Â· DOCX Â· TXT Â· CSV â€” max 200 MB</div>
+                <div class="nova-drop-sub">PDF · DOCX · TXT · CSV — max 200 MB</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1796,19 +1794,19 @@ def render_dashboard(api_key, temperature, model_tier):
                     "Executive Summary",
                     "Entity & Relation Mapping",
                     "Q&A Generation",
-                    "ðŸ”¥ Roast My Document",
-                    "ðŸ§’ ELI5 â€” Explain Simply",
-                    "âœ¨ Vibe Check",
-                    "âš”ï¸ Debate This",
+                    "🔥 Roast My Document",
+                    "🧒 ELI5 — Explain Simply",
+                    "✨ Vibe Check",
+                    "⚔�? Debate This",
                 ]
             )
-            analyze_btn = st.button("â—ˆ  Analyze Document", use_container_width=True, key="doc_analyze", type="primary")
+            analyze_btn = st.button("◈  Analyze Document", use_container_width=True, key="doc_analyze", type="primary")
 
         with col_side:
             st.markdown("""
             <div class="nova-card-accent">
                 <div class="nova-card-header">
-                    <div class="nova-card-icon">â–£</div>
+                    <div class="nova-card-icon">▣</div>
                     <div>
                         <div class="nova-card-title">Analysis Options</div>
                         <div class="nova-card-sub">Configure extraction pipeline</div>
@@ -1824,15 +1822,15 @@ def render_dashboard(api_key, temperature, model_tier):
             opt_pii        = st.checkbox("PII Detection & Redaction",   value=False)
             opt_quotes     = st.checkbox("Generate Key Quotes",         value=True)
 
-            pipeline_status = "âœ“ Ready" if api_key else "â³ Key Needed"
+            pipeline_status = "✓ Ready" if api_key else "�?� Key Needed"
             pipeline_color  = "var(--accent)" if api_key else "var(--danger)"
             st.markdown(f"""
             <div class="nova-pipeline" style="margin-top:12px;">
                 <div class="nova-pipeline-title">Pipeline Status</div>
-                Loader â”€â”€â”€â”€â”€â”€ âœ“ Ready<br>
-                Chunker â”€â”€â”€â”€â”€ âœ“ Ready<br>
-                Primary â”€â”€â”€â”€â”€ <span style="color:{pipeline_color};">{pipeline_status}</span><br>
-                Fallback â”€â”€â”€â”€ <span style="color:var(--accent);">âœ“ Auto</span>
+                Loader ────── ✓ Ready<br>
+                Chunker ───── ✓ Ready<br>
+                Primary ───── <span style="color:{pipeline_color};">{pipeline_status}</span><br>
+                Fallback ──── <span style="color:var(--accent);">✓ Auto</span>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1840,7 +1838,7 @@ def render_dashboard(api_key, temperature, model_tier):
             if not uploaded_file:
                 st.warning("Pehle document upload karo.")
             elif not check_rate_limit():
-                st.error("â± Rate limit. Thodi der baad try karo.")
+                st.error("�?� Rate limit. Thodi der baad try karo.")
             else:
                 safe, category = is_safe(analysis_type)
                 if not safe:
@@ -1862,11 +1860,11 @@ def render_dashboard(api_key, temperature, model_tier):
                     thinking_ph.empty()
                     st.session_state.query_count += 1
 
-                    if result.startswith("âŒ"):
+                    if result.startswith("�?�"):
                         st.error(result)
-                        st.toast("Analysis fail hua.", icon="âŒ")
+                        st.toast("Analysis fail hua.", icon="�?�")
                     else:
-                        st.toast("Analysis complete!", icon="âœ…")
+                        st.toast("Analysis complete!", icon="✅")
                         st.markdown("""
                         <div class="nova-response-card">
                             <div class="nova-response-header">
@@ -1878,19 +1876,19 @@ def render_dashboard(api_key, temperature, model_tier):
                         st.markdown(result)
                         dl1, dl2 = st.columns(2)
                         with dl1:
-                            st.download_button("â†“  Export as .md", data=result, file_name="nexus_report.md", mime="text/markdown", use_container_width=True)
+                            st.download_button("↓  Export as .md", data=result, file_name="nexus_report.md", mime="text/markdown", use_container_width=True)
                         with dl2:
-                            st.download_button("â†“  Export as .txt", data=result, file_name="nexus_report.txt", mime="text/plain", use_container_width=True)
+                            st.download_button("↓  Export as .txt", data=result, file_name="nexus_report.txt", mime="text/plain", use_container_width=True)
 
-    # â•â•â• TAB 2: YouTube â•â•â•
+    # �?�?�? TAB 2: YouTube �?�?�?
     with tab2:
         st.markdown("""
         <div class="nova-card">
             <div class="nova-card-header">
-                <div class="nova-card-icon">â–¶</div>
+                <div class="nova-card-icon">▶</div>
                 <div>
                     <div class="nova-card-title">YouTube Intelligence Architect</div>
-                    <div class="nova-card-sub">Extract Â· Summarize Â· Analyze video content</div>
+                    <div class="nova-card-sub">Extract · Summarize · Analyze video content</div>
                 </div>
             </div>
         </div>
@@ -1905,15 +1903,15 @@ def render_dashboard(api_key, temperature, model_tier):
                 "Actionable Insights Only",
                 "Speaker Diarization",
                 "Sentiment Timeline",
-                "ðŸ“ Quiz Generator",
-                "ðŸ“– Chapter Detection",
+                "�? Quiz Generator",
+                "📖 Chapter Detection",
             ])
             output_format = st.radio(
                 "Output Format",
                 ["Detailed Report", "Bullet Points", "Twitter/X Thread", "Email Brief"],
                 horizontal=True
             )
-            yt_analyze_btn = st.button("â–¶  Extract Intelligence", use_container_width=True, key="yt_go", type="primary")
+            yt_analyze_btn = st.button("▶  Extract Intelligence", use_container_width=True, key="yt_go", type="primary")
 
         with yt_col2:
             preview_html = ""
@@ -1929,7 +1927,7 @@ def render_dashboard(api_key, temperature, model_tier):
             st.markdown(f"""
             <div class="nova-card" style="min-height:200px;">
                 <div class="nova-card-header">
-                    <div class="nova-card-icon">â–£</div>
+                    <div class="nova-card-icon">▣</div>
                     <div><div class="nova-card-title">Video Preview</div>
                     <div class="nova-card-sub">{"Live preview" if preview_html else "Paste URL to preview"}</div></div>
                 </div>
@@ -1945,7 +1943,7 @@ def render_dashboard(api_key, temperature, model_tier):
             if not yt_url.strip():
                 st.warning("YouTube URL paste karo.")
             elif not check_rate_limit():
-                st.error("â± Rate limit. Thodi der baad try karo.")
+                st.error("�?� Rate limit. Thodi der baad try karo.")
             else:
                 safe, category = is_safe(yt_url)
                 if not safe:
@@ -1964,11 +1962,11 @@ def render_dashboard(api_key, temperature, model_tier):
                     thinking_ph.empty()
                     st.session_state.query_count += 1
 
-                    if result.startswith("âŒ"):
+                    if result.startswith("�?�"):
                         st.error(result)
-                        st.toast("Extraction fail hua.", icon="âŒ")
+                        st.toast("Extraction fail hua.", icon="�?�")
                     else:
-                        st.toast("Video intelligence extracted!", icon="âœ…")
+                        st.toast("Video intelligence extracted!", icon="✅")
                         st.markdown("""
                         <div class="nova-response-card">
                             <div class="nova-response-header">
@@ -1980,13 +1978,13 @@ def render_dashboard(api_key, temperature, model_tier):
                         st.markdown(result)
                         dl_c1, dl_c2 = st.columns(2)
                         with dl_c1:
-                            st.download_button("â†“  Export as .md", data=result, file_name="nexus_yt_report.md", mime="text/markdown", use_container_width=True)
+                            st.download_button("↓  Export as .md", data=result, file_name="nexus_yt_report.md", mime="text/markdown", use_container_width=True)
                         with dl_c2:
-                            st.download_button("â†“  Export as .txt", data=result, file_name="nexus_yt_report.txt", mime="text/plain", use_container_width=True)
+                            st.download_button("↓  Export as .txt", data=result, file_name="nexus_yt_report.txt", mime="text/plain", use_container_width=True)
 
-    # â•â•â• TAB 3: Neural Chat â•â•â•
+    # �?�?�? TAB 3: Neural Chat �?�?�?
     with tab3:
-        # Full-width chat â€” no side panel
+        # Full-width chat — no side panel
         render_chat_history(st.session_state.chat_history)
 
         # Input row
@@ -1994,14 +1992,14 @@ def render_dashboard(api_key, temperature, model_tier):
         with inp_c1:
             user_input = st.text_input(
                 "Message",
-                placeholder="Kuch bhi poochho â€” NEXUS sun raha hai...",
+                placeholder="Kuch bhi poochho — NEXUS sun raha hai...",
                 label_visibility="collapsed",
                 key=f"chat_input_{st.session_state.input_counter}"
             )
         with inp_c2:
-            send_btn = st.button("â–¶", use_container_width=True, key="chat_send", type="primary")
+            send_btn = st.button("▶", use_container_width=True, key="chat_send", type="primary")
 
-        # Quick Templates â€” 2 per row (mobile friendly)
+        # Quick Templates — 2 per row (mobile friendly)
         suggestion_triggered = None
         for row_start in range(0, len(PROMPT_TEMPLATES), 2):
             row_items = PROMPT_TEMPLATES[row_start:row_start+2]
@@ -2024,7 +2022,7 @@ def render_dashboard(api_key, temperature, model_tier):
                 unsafe_allow_html=True)
         with tb2:
             st.download_button(
-                "â†“ Export",
+                "↓ Export",
                 data=build_chat_export(st.session_state.chat_history, "md"),
                 file_name=f"nexus_chat_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
                 mime="text/markdown",
@@ -2032,16 +2030,16 @@ def render_dashboard(api_key, temperature, model_tier):
                 key="export_md"
             )
         with tb3:
-            if st.button("ðŸ—‘ï¸ Clear", use_container_width=True, key="clear_chat"):
+            if st.button("🗑�? Clear", use_container_width=True, key="clear_chat"):
                 st.session_state.chat_history = [INITIAL_GREETING]
                 st.session_state.copy_states  = {}
                 st.session_state.input_counter += 1
                 st.rerun()
 
-        # â”€â”€ Process send â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Process send ──────────────────────────
         if send_btn and user_input.strip():
             if not check_rate_limit():
-                st.error("â± Rate limit. Thodi der baad try karo.")
+                st.error("�?� Rate limit. Thodi der baad try karo.")
             else:
                 safe, category = is_safe(user_input)
                 if not safe:
@@ -2073,29 +2071,29 @@ def render_dashboard(api_key, temperature, model_tier):
                         _save_current_session()
                     st.rerun()
 
-    # â•â•â• TAB 4: Image Vision â•â•â•
+    # �?�?�? TAB 4: Image Vision �?�?�?
     with tab4:
 
-        # â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Header ──────────────────────────────────
         st.markdown("""
         <div style="display:flex;align-items:center;gap:12px;padding:4px 0 16px;">
             <div style="width:40px;height:40px;border-radius:10px;background:var(--s2);
                         border:1px solid var(--border);display:flex;align-items:center;
-                        justify-content:center;font-size:18px;">ðŸ”</div>
+                        justify-content:center;font-size:18px;">�?</div>
             <div>
                 <div style="font-family:var(--fb);font-size:16px;font-weight:700;
                             color:var(--tx);letter-spacing:-.02em;">Image Vision</div>
                 <div style="font-family:var(--fs);font-size:12px;color:var(--tx-3);
-                            margin-top:1px;">Upload any image â€” NEXUS analyzes it with AI</div>
+                            margin-top:1px;">Upload any image — NEXUS analyzes it with AI</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # â”€â”€ Upload Zone â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Upload Zone ─────────────────────────────
         st.markdown('<div class="img-upload-zone">' 
-                    '<div class="img-upload-icon">ðŸ–¼ï¸</div>' 
+                    '<div class="img-upload-icon">🖼�?</div>' 
                     '<div class="img-upload-title">Drop your image here</div>' 
-                    '<div class="img-upload-sub">PNG Â· JPG Â· JPEG Â· WEBP Â· GIF</div>' 
+                    '<div class="img-upload-sub">PNG · JPG · JPEG · WEBP · GIF</div>' 
                     '</div>', unsafe_allow_html=True)
 
         uploaded_img = st.file_uploader(
@@ -2105,7 +2103,7 @@ def render_dashboard(api_key, temperature, model_tier):
             key="img_uploader"
         )
 
-        # â”€â”€ Image Preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Image Preview ────────────────────────────
         if uploaded_img:
             img_size_kb = len(uploaded_img.getvalue()) / 1024
             img_size_str = f"{img_size_kb:.0f} KB" if img_size_kb < 1024 else f"{img_size_kb/1024:.1f} MB"
@@ -2113,11 +2111,11 @@ def render_dashboard(api_key, temperature, model_tier):
             st.image(uploaded_img, use_container_width=True)
             st.markdown(
                 f'<div class="img-meta-row">' 
-                f'<span class="img-meta-dot">â—ˆ</span>' 
+                f'<span class="img-meta-dot">◈</span>' 
                 f'<span>{uploaded_img.name}</span>' 
-                f'<span class="img-meta-dot">Â·</span>' 
+                f'<span class="img-meta-dot">·</span>' 
                 f'<span>{img_size_str}</span>' 
-                f'<span class="img-meta-dot">Â·</span>' 
+                f'<span class="img-meta-dot">·</span>' 
                 f'<span>{uploaded_img.type.split("/")[-1].upper()}</span>' 
                 f'</div></div>',
                 unsafe_allow_html=True
@@ -2125,7 +2123,7 @@ def render_dashboard(api_key, temperature, model_tier):
 
         st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
-        # â”€â”€ Vision Mode Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Vision Mode Grid ─────────────────────────
         st.markdown(
             '<div style="font-family:var(--fb);font-size:10px;font-weight:700;' 
             'letter-spacing:.09em;text-transform:uppercase;color:var(--tx-3);margin-bottom:10px;">' 
@@ -2134,12 +2132,12 @@ def render_dashboard(api_key, temperature, model_tier):
         )
 
         MODE_OPTIONS = [
-            ("ðŸ”­", "General Analysis",       "Full detailed breakdown of the image"),
-            ("ðŸ”¤", "Text & OCR",             "Extract all visible text from image"),
-            ("ðŸ“¦", "Object Detection",        "Detect & list all objects with positions"),
-            ("ðŸ”¥", "Roast This Image",        "Savage + funny critique of the image"),
-            ("ðŸ§’", "ELI5 â€” Explain Simply",   "Explain like I'm 10 years old"),
-            ("âœ¨", "Vibe Check",              "Aesthetic score, mood & vibe analysis"),
+            ("🔭", "General Analysis",       "Full detailed breakdown of the image"),
+            ("🔤", "Text & OCR",             "Extract all visible text from image"),
+            ("📦", "Object Detection",        "Detect & list all objects with positions"),
+            ("🔥", "Roast This Image",        "Savage + funny critique of the image"),
+            ("🧒", "ELI5 — Explain Simply",   "Explain like I'm 10 years old"),
+            ("✨", "Vibe Check",              "Aesthetic score, mood & vibe analysis"),
         ]
 
         mode_labels = [m[1] for m in MODE_OPTIONS]
@@ -2165,7 +2163,7 @@ def render_dashboard(api_key, temperature, model_tier):
                         f'</div>',
                         unsafe_allow_html=True
                     )
-                    if st.button("Select" if not is_sel else "âœ“ Selected",
+                    if st.button("Select" if not is_sel else "✓ Selected",
                                  key=f"img_mode_{global_idx}",
                                  use_container_width=True,
                                  type="primary" if is_sel else "secondary"):
@@ -2176,18 +2174,18 @@ def render_dashboard(api_key, temperature, model_tier):
 
         st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
 
-        # â”€â”€ Custom Question â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Custom Question ──────────────────────────
         img_question = st.text_area(
-            "ðŸ’¬ Custom Question (optional)",
+            "💬 Custom Question (optional)",
             placeholder="e.g. What brand is shown? Is there any damage visible? What is the person doing?",
             height=80,
             key="img_question",
             label_visibility="visible"
         )
 
-        # â”€â”€ Analyze Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Analyze Button ───────────────────────────
         analyze_img_btn = st.button(
-            "ðŸ”  Analyze Image",
+            "�?  Analyze Image",
             use_container_width=True,
             key="img_analyze",
             type="primary",
@@ -2198,23 +2196,23 @@ def render_dashboard(api_key, temperature, model_tier):
             st.markdown(
                 '<div style="text-align:center;font-family:var(--fb);font-size:10px;' 
                 'color:var(--tx-3);margin-top:4px;letter-spacing:.05em;">' 
-                'â†‘ Upload an image to enable analysis</div>',
+                '↑ Upload an image to enable analysis</div>',
                 unsafe_allow_html=True
             )
 
-        # â”€â”€ Process â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Process ──────────────────────────────────
         if analyze_img_btn:
             if not uploaded_img:
                 st.warning("Image upload karo pehle.")
             elif not check_rate_limit():
-                st.error("â± Rate limit hit. Thodi der baad try karo.")
+                st.error("�?� Rate limit hit. Thodi der baad try karo.")
             else:
                 img_mode_prompts = {
                     "General Analysis":     "",
                     "Text & OCR":           "Extract ALL text visible in this image exactly as it appears, preserving formatting and layout. Then provide a brief summary of what the text is about.",
-                    "Object Detection":     "List ALL objects visible in this image in a Markdown table:\n| # | Object | Location in Frame | Description |\n|---|--------|------------------|-------------|\nBe exhaustive â€” include every visible item, person, or element.",
-                    "Roast This Image":     "Brutally roast this image! What\'s wrong, weird, or cringe? Be clever and funny. Give 3 genuine improvements too. Use ðŸ”¥ emoji. End with one savage line.",
-                    "ELI5 â€” Explain Simply":"Explain what\'s in this image like you\'re talking to a 10-year-old. Use simple words, fun comparisons, and make it engaging and easy to understand.",
+                    "Object Detection":     "List ALL objects visible in this image in a Markdown table:\n| # | Object | Location in Frame | Description |\n|---|--------|------------------|-------------|\nBe exhaustive — include every visible item, person, or element.",
+                    "Roast This Image":     "Brutally roast this image! What\'s wrong, weird, or cringe? Be clever and funny. Give 3 genuine improvements too. Use 🔥 emoji. End with one savage line.",
+                    "ELI5 — Explain Simply":"Explain what\'s in this image like you\'re talking to a 10-year-old. Use simple words, fun comparisons, and make it engaging and easy to understand.",
                     "Vibe Check":           "Do a full VIBE CHECK on this image:\n1. **Overall vibe** (one word)\n2. **Emotional tone**\n3. **Hidden story or context**\n4. **Aesthetic score** /10\n5. **Best feature**\n6. **Vibe summary**: 1 emoji + 1 sentence",
                 }
 
@@ -2241,15 +2239,15 @@ def render_dashboard(api_key, temperature, model_tier):
                 thinking_ph.empty()
                 st.session_state.query_count += 1
 
-                if result.startswith("âŒ"):
+                if result.startswith("�?�"):
                     st.error(result)
-                    st.toast("Analysis fail hua.", icon="âŒ")
+                    st.toast("Analysis fail hua.", icon="�?�")
                 else:
-                    st.toast("âœ… Image analyzed!", icon="âœ…")
+                    st.toast("✅ Image analyzed!", icon="✅")
                     # Result card
                     st.markdown(
                         f'<div class="img-result-header">' 
-                        f'<div class="img-result-title">ðŸ“Š Vision Analysis Report</div>' 
+                        f'<div class="img-result-title">📊 Vision Analysis Report</div>' 
                         f'<div class="img-result-badge">{img_mode}</div>' 
                         f'</div>',
                         unsafe_allow_html=True
@@ -2262,7 +2260,7 @@ def render_dashboard(api_key, temperature, model_tier):
                     ex1, ex2 = st.columns(2)
                     with ex1:
                         st.download_button(
-                            "â†“ Export as .md",
+                            "↓ Export as .md",
                             data=result,
                             file_name=f"nexus_vision_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
                             mime="text/markdown",
@@ -2271,7 +2269,7 @@ def render_dashboard(api_key, temperature, model_tier):
                         )
                     with ex2:
                         st.download_button(
-                            "â†“ Export as .txt",
+                            "↓ Export as .txt",
                             data=result,
                             file_name=f"nexus_vision_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
                             mime="text/plain",
@@ -2279,21 +2277,21 @@ def render_dashboard(api_key, temperature, model_tier):
                             key="img_export_txt"
                         )
 
-    # â•â•â• TAB 5: Voice â•â•â•
+    # �?�?�? TAB 5: Voice �?�?�?
     with tab5:
         v_col1, v_col2 = st.columns([1, 1], gap="large")
         with v_col1:
             st.markdown("""
             <div class="nova-card">
                 <div class="nova-card-header">
-                    <div class="nova-card-icon">â—‰</div>
+                    <div class="nova-card-icon">◉</div>
                     <div>
                         <div class="nova-card-title">Voice Command Interface</div>
-                        <div class="nova-card-sub">Speak naturally â€” NEXUS understands</div>
+                        <div class="nova-card-sub">Speak naturally — NEXUS understands</div>
                     </div>
                 </div>
                 <div class="nova-voice-orb-wrap">
-                    <div class="nova-voice-orb">â—‰</div>
+                    <div class="nova-voice-orb">◉</div>
                     <div class="nova-voice-status">Ready to listen</div>
                 </div>
             </div>
@@ -2303,17 +2301,17 @@ def render_dashboard(api_key, temperature, model_tier):
                 from streamlit_mic_recorder import mic_recorder
 
                 audio_data = mic_recorder(
-                    start_prompt="âº  Start Recording",
-                    stop_prompt="â¹  Stop Recording",
+                    start_prompt="�?�  Start Recording",
+                    stop_prompt="�?�  Stop Recording",
                     just_once=True,
                     use_container_width=True,
                     key="voice_recorder"
                 )
 
                 if audio_data and audio_data.get("bytes"):
-                    st.success("âœ… Voice capture ho gaya! Processing...")
+                    st.success("✅ Voice capture ho gaya! Processing...")
 
-                    # Initialize transcript before use â€” avoids NameError
+                    # Initialize transcript before use — avoids NameError
                     transcript = None
                     raw_transcript = transcribe_voice(audio_data["bytes"], api_key)
 
@@ -2329,7 +2327,7 @@ def render_dashboard(api_key, temperature, model_tier):
                         voice_result = f"**You said:** {transcript}\n\n---\n\n{voice_ai_reply}"
                     else:
                         voice_result = (
-                            f"âš ï¸ Voice transcription fail hua: {raw_transcript}\n\n"
+                            f"� �? Voice transcription fail hua: {raw_transcript}\n\n"
                             "**Tip:** Neural Chat tab mein type karke try karo."
                         )
 
@@ -2343,16 +2341,16 @@ def render_dashboard(api_key, temperature, model_tier):
                     """, unsafe_allow_html=True)
                     st.markdown(voice_result)
 
-                    if not voice_result.startswith("âš ï¸"):
+                    if not voice_result.startswith("� �?"):
                         voice_label = f"[Voice] {transcript}" if transcript else "[Voice Input]"
                         st.session_state.chat_history.append({"role": "user", "content": voice_label})
                         st.session_state.chat_history.append({"role": "assistant", "content": voice_result})
                         st.session_state.query_count += 1
-                        st.toast("Voice response Neural Chat mein save ho gaya!", icon="â—‰")
+                        st.toast("Voice response Neural Chat mein save ho gaya!", icon="◉")
 
             except ImportError:
                 st.info(
-                    "ðŸ“¦ `streamlit-mic-recorder` install nahi hai.\n\n"
+                    "📦 `streamlit-mic-recorder` install nahi hai.\n\n"
                     "Add `streamlit-mic-recorder` to your **requirements.txt** and redeploy."
                 )
 
@@ -2360,7 +2358,7 @@ def render_dashboard(api_key, temperature, model_tier):
             st.markdown("""
             <div class="nova-card">
                 <div class="nova-card-header">
-                    <div class="nova-card-icon">â–¤</div>
+                    <div class="nova-card-icon">▤</div>
                     <div>
                         <div class="nova-card-title">Voice Commands Guide</div>
                         <div class="nova-card-sub">Supported patterns</div>
@@ -2388,7 +2386,7 @@ def render_dashboard(api_key, temperature, model_tier):
             st.markdown("""
             <div class="nova-card" style="margin-top:12px;">
                 <div class="nova-card-header">
-                    <div class="nova-card-icon">â—ˆ</div>
+                    <div class="nova-card-icon">◈</div>
                     <div>
                         <div class="nova-card-title">How Voice Works</div>
                         <div class="nova-card-sub">Neural audio processing</div>
@@ -2408,11 +2406,11 @@ def render_dashboard(api_key, temperature, model_tier):
     st.markdown("""
     <div class="nova-footer">
         <div class="nova-footer-text">
-            NEXUS INTELLIGENCE PLATFORM &nbsp;Â·&nbsp; BUILT WITH STREAMLIT &nbsp;Â·&nbsp;
-            <span>NEURAL ENGINE</span> &nbsp;Â·&nbsp; Â© 2026
+            NEXUS INTELLIGENCE PLATFORM &nbsp;·&nbsp; BUILT WITH STREAMLIT &nbsp;·&nbsp;
+            <span>NEURAL ENGINE</span> &nbsp;·&nbsp; © 2026
         </div>
         <div style="margin-top:6px; font-size:9px; color:var(--tx-3); font-family:var(--fb); letter-spacing:.08em;">
-            ALL SYSTEMS OPERATIONAL &nbsp; â—ˆ &nbsp; v5.1.0
+            ALL SYSTEMS OPERATIONAL &nbsp; ◈ &nbsp; v5.1.0
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -2420,7 +2418,7 @@ def render_dashboard(api_key, temperature, model_tier):
 
 
 
-    # â•â•â• TAB 6: Transform â•â•â•
+    # �?�?�? TAB 6: Transform �?�?�?
     with tab6:
 
         # Header
@@ -2428,12 +2426,12 @@ def render_dashboard(api_key, temperature, model_tier):
         <div style="display:flex;align-items:center;gap:12px;padding:4px 0 16px;">
             <div style="width:40px;height:40px;border-radius:10px;background:var(--s2);
                         border:1px solid var(--border);display:flex;align-items:center;
-                        justify-content:center;font-size:18px;">ðŸ”„</div>
+                        justify-content:center;font-size:18px;">🔄</div>
             <div>
                 <div style="font-family:var(--fb);font-size:16px;font-weight:700;
                             color:var(--tx);letter-spacing:-.02em;">Transform</div>
                 <div style="font-family:var(--fs);font-size:12px;color:var(--tx-3);margin-top:1px;">
-                    Koi bhi text paste karo â€” ek click mein convert karo
+                    Koi bhi text paste karo — ek click mein convert karo
                 </div>
             </div>
         </div>
@@ -2442,7 +2440,7 @@ def render_dashboard(api_key, temperature, model_tier):
         # Input
         transform_input = st.text_area(
             "Input Text",
-            placeholder="Yahan koi bhi text paste karo â€” article, paragraph, notes, anything...",
+            placeholder="Yahan koi bhi text paste karo — article, paragraph, notes, anything...",
             height=160,
             key="transform_input",
             label_visibility="collapsed"
@@ -2456,16 +2454,16 @@ def render_dashboard(api_key, temperature, model_tier):
             unsafe_allow_html=True
         )
 
-        # Transform modes â€” 2 per row
+        # Transform modes — 2 per row
         TRANSFORM_MODES = [
-            ("ðŸ¦", "Twitter / X Thread",   "3-5 punchy tweets mein convert karo",         "Convert this into a compelling Twitter/X thread. Make it punchy, engaging, and use emojis. Number each tweet. Max 280 chars each."),
-            ("ðŸ’¼", "LinkedIn Post",         "Professional LinkedIn post banao",             "Convert this into a professional LinkedIn post. Add a strong hook, key insights, and a call-to-action. Use line breaks for readability. Add 3-5 relevant hashtags at the end."),
-            ("ðŸ“§", "Formal Email",          "Professional email mein convert karo",         "Convert this into a well-structured formal email. Include: Subject line, greeting, body paragraphs, and a professional sign-off."),
-            ("ðŸ“±", "WhatsApp Message",      "Casual aur short message banao",               "Convert this into a casual, friendly WhatsApp message. Keep it short, conversational, and natural. Use simple language."),
-            ("ðŸ“", "Short Summary",         "3-4 lines mein summarize karo",                "Summarize this in exactly 3-4 concise sentences. Capture only the most essential points. Be direct."),
-            ("ðŸŒ", "Hindi â†” English",       "Language translate karo",                      "Detect the language of this text. If it is in English, translate it to fluent natural Hindi. If it is in Hindi, translate it to fluent natural English. Provide only the translation, no explanation."),
-            ("ðŸ“£", "Casual Explanation",    "Simple aur casual tarike se explain karo",     "Explain this in the most casual, friendly way possible â€” like explaining to a friend over chai. No jargon, no formality. Use Hinglish if it helps."),
-            ("âš¡", "Bullet Points",         "Key points bullets mein nikalo",               "Extract the key points from this text as clean bullet points. Each bullet should be concise (max 1 line). Start each with a relevant emoji."),
+            ("�?�", "Twitter / X Thread",   "3-5 punchy tweets mein convert karo",         "Convert this into a compelling Twitter/X thread. Make it punchy, engaging, and use emojis. Number each tweet. Max 280 chars each."),
+            ("💼", "LinkedIn Post",         "Professional LinkedIn post banao",             "Convert this into a professional LinkedIn post. Add a strong hook, key insights, and a call-to-action. Use line breaks for readability. Add 3-5 relevant hashtags at the end."),
+            ("📧", "Formal Email",          "Professional email mein convert karo",         "Convert this into a well-structured formal email. Include: Subject line, greeting, body paragraphs, and a professional sign-off."),
+            ("📱", "WhatsApp Message",      "Casual aur short message banao",               "Convert this into a casual, friendly WhatsApp message. Keep it short, conversational, and natural. Use simple language."),
+            ("�?", "Short Summary",         "3-4 lines mein summarize karo",                "Summarize this in exactly 3-4 concise sentences. Capture only the most essential points. Be direct."),
+            ("�?", "Hindi ↔ English",       "Language translate karo",                      "Detect the language of this text. If it is in English, translate it to fluent natural Hindi. If it is in Hindi, translate it to fluent natural English. Provide only the translation, no explanation."),
+            ("📣", "Casual Explanation",    "Simple aur casual tarike se explain karo",     "Explain this in the most casual, friendly way possible — like explaining to a friend over chai. No jargon, no formality. Use Hinglish if it helps."),
+            ("⚡", "Bullet Points",         "Key points bullets mein nikalo",               "Extract the key points from this text as clean bullet points. Each bullet should be concise (max 1 line). Start each with a relevant emoji."),
         ]
 
         st.markdown(
@@ -2496,7 +2494,7 @@ def render_dashboard(api_key, temperature, model_tier):
                         f'</div>',
                         unsafe_allow_html=True
                     )
-                    btn_label = "âœ“ Selected" if is_sel else "Select"
+                    btn_label = "✓ Selected" if is_sel else "Select"
                     btn_type  = "primary" if is_sel else "secondary"
                     if st.button(btn_label, key=f"tr_mode_{gidx}", use_container_width=True, type=btn_type):
                         st.session_state["selected_transform"] = gidx
@@ -2507,7 +2505,7 @@ def render_dashboard(api_key, temperature, model_tier):
         # Transform button
         can_transform = bool(transform_input.strip()) and selected_transform is not None
         transform_btn = st.button(
-            "ðŸ”„  Transform Now",
+            "🔄  Transform Now",
             use_container_width=True,
             key="transform_go",
             type="primary",
@@ -2515,14 +2513,14 @@ def render_dashboard(api_key, temperature, model_tier):
         )
 
         if not transform_input.strip():
-            st.markdown('<div style="text-align:center;font-size:10px;color:var(--tx-3);font-family:var(--fb);">â†‘ Text paste karo upar</div>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align:center;font-size:10px;color:var(--tx-3);font-family:var(--fb);">↑ Text paste karo upar</div>', unsafe_allow_html=True)
         elif selected_transform is None:
-            st.markdown('<div style="text-align:center;font-size:10px;color:var(--tx-3);font-family:var(--fb);">â†‘ Transform mode select karo</div>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align:center;font-size:10px;color:var(--tx-3);font-family:var(--fb);">↑ Transform mode select karo</div>', unsafe_allow_html=True)
 
         # Process
         if transform_btn and can_transform:
             if not check_rate_limit():
-                st.error("â± Rate limit. Thodi der baad try karo.")
+                st.error("�?� Rate limit. Thodi der baad try karo.")
             else:
                 _, _, _, prompt_instruction = TRANSFORM_MODES[selected_transform]
                 icon_t, label_t, _, _ = TRANSFORM_MODES[selected_transform]
@@ -2543,7 +2541,7 @@ def render_dashboard(api_key, temperature, model_tier):
                     resp = client.chat.completions.create(
                         model=MODEL_MAP.get(model_tier, MODEL_MAP["Ultra"]),
                         messages=[
-                            {"role": "system", "content": "You are a precise text transformation engine. Transform exactly as instructed. Output only the transformed result â€” no preamble, no explanation." + SAFETY_SYSTEM_ADDON},
+                            {"role": "system", "content": "You are a precise text transformation engine. Transform exactly as instructed. Output only the transformed result — no preamble, no explanation." + SAFETY_SYSTEM_ADDON},
                             {"role": "user",   "content": full_prompt}
                         ],
                         temperature=0.6,
@@ -2553,13 +2551,13 @@ def render_dashboard(api_key, temperature, model_tier):
                     transform_result = _LLM_BLOCK_MSG if "NEXUS_SAFETY_REFUSE" in raw_result else raw_result
                 except Exception as e:
                     transform_result = None
-                    st.error(f"âŒ Error: {str(e)[:80]}")
+                    st.error(f"�?� Error: {str(e)[:80]}")
 
                 thinking_ph.empty()
 
                 if transform_result:
                     st.session_state.query_count += 1
-                    st.toast(f"âœ… Transformed to {label_t}!", icon="ðŸ”„")
+                    st.toast(f"✅ Transformed to {label_t}!", icon="🔄")
 
                     # Result card
                     st.markdown(
@@ -2579,7 +2577,7 @@ def render_dashboard(api_key, temperature, model_tier):
                         st.code(transform_result, language=None)
                     with cp2:
                         st.download_button(
-                            "â†“ Download",
+                            "↓ Download",
                             data=transform_result,
                             file_name=f"nexus_transform_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
                             mime="text/plain",
@@ -2588,10 +2586,10 @@ def render_dashboard(api_key, temperature, model_tier):
                         )
 
 
-    # â•â•â• TAB 7: About & Legal â•â•â•
+    # �?�?�? TAB 7: About & Legal �?�?�?
     with tab7:
 
-        # â”€â”€ Page Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Page Hero ──────────────────────────────────────────────────────
         st.markdown("""
         <div style="text-align:center;padding:40px 20px 32px;">
             <div style="width:64px;height:64px;border-radius:16px;
@@ -2601,14 +2599,14 @@ def render_dashboard(api_key, temperature, model_tier):
                         color:var(--accent);margin-bottom:20px;">N</div>
             <div style="font-family:var(--fb);font-size:10px;font-weight:700;
                         letter-spacing:.18em;text-transform:uppercase;
-                        color:var(--tx-3);margin-bottom:12px;">Intelligence Platform Â· v5.1.0</div>
+                        color:var(--tx-3);margin-bottom:12px;">Intelligence Platform · v5.1.0</div>
             <div style="font-family:var(--fb);font-size:32px;font-weight:800;
                         letter-spacing:-.04em;color:var(--tx);margin-bottom:10px;">
                 NEXUS<span style="color:var(--accent);">.</span>
             </div>
             <div style="font-family:var(--fs);font-size:14px;color:var(--tx-2);
                         max-width:480px;margin:0 auto;line-height:1.8;">
-                A multi-modal AI intelligence platform â€” built from scratch,
+                A multi-modal AI intelligence platform — built from scratch,
                 designed for real use, and made to actually work.
             </div>
         </div>
@@ -2616,8 +2614,8 @@ def render_dashboard(api_key, temperature, model_tier):
 
         st.markdown("<div style='height:4px;background:linear-gradient(90deg,transparent,var(--accent-ring),transparent);margin-bottom:28px;'></div>", unsafe_allow_html=True)
 
-        # â”€â”€ SECTION 1: About the Platform â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        with st.expander("â—ˆ  About NEXUS â€” The Full Story", expanded=True):
+        # ── SECTION 1: About the Platform ─────────────────────────────────
+        with st.expander("◈  About NEXUS — The Full Story", expanded=True):
             st.markdown("""
 <div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
 
@@ -2625,9 +2623,9 @@ def render_dashboard(api_key, temperature, model_tier):
 What is NEXUS?
 </div>
 
-NEXUS is a multi-modal AI intelligence platform built on top of Groq's ultra-fast inference engine. It's not just another chatbot wrapper â€” it's a full-stack productivity tool designed to handle real tasks: analyzing lengthy documents, breaking down YouTube videos you don't have time to watch, understanding images, processing voice commands, and transforming text into whatever format you need in seconds.
+NEXUS is a multi-modal AI intelligence platform built on top of Groq's ultra-fast inference engine. It's not just another chatbot wrapper — it's a full-stack productivity tool designed to handle real tasks: analyzing lengthy documents, breaking down YouTube videos you don't have time to watch, understanding images, processing voice commands, and transforming text into whatever format you need in seconds.
 
-The idea was simple: most AI tools feel like toys. They're slow, they hallucinate constantly, and they don't actually fit into a real workflow. NEXUS was built to be different â€” fast, focused, and genuinely useful for someone who has actual work to do.
+The idea was simple: most AI tools feel like toys. They're slow, they hallucinate constantly, and they don't actually fit into a real workflow. NEXUS was built to be different — fast, focused, and genuinely useful for someone who has actual work to do.
 
 <br>
 
@@ -2635,27 +2633,27 @@ The idea was simple: most AI tools feel like toys. They're slow, they hallucinat
 What Can NEXUS Actually Do?
 </div>
 
-<b style="color:var(--accent);">â—ˆ Document Intelligence</b> â€” Upload any PDF, DOCX, TXT, or CSV file and NEXUS will read the whole thing, find what matters, and present it in a format that saves you hours. From full semantic analysis to executive summaries, entity extraction to debate generation â€” it handles documents the way a sharp analyst would, not the way a search engine does.
+<b style="color:var(--accent);">◈ Document Intelligence</b> — Upload any PDF, DOCX, TXT, or CSV file and NEXUS will read the whole thing, find what matters, and present it in a format that saves you hours. From full semantic analysis to executive summaries, entity extraction to debate generation — it handles documents the way a sharp analyst would, not the way a search engine does.
 
 <br><br>
 
-<b style="color:var(--accent);">â–¶ YouTube Intelligence Architect</b> â€” Paste a YouTube URL and NEXUS fetches the transcript, processes it, and gives you key moments with timestamps, actionable insights, chapter breakdowns, quiz questions, and more. You get the value of a 40-minute video in under a minute.
+<b style="color:var(--accent);">▶ YouTube Intelligence Architect</b> — Paste a YouTube URL and NEXUS fetches the transcript, processes it, and gives you key moments with timestamps, actionable insights, chapter breakdowns, quiz questions, and more. You get the value of a 40-minute video in under a minute.
 
 <br><br>
 
-<b style="color:var(--accent);">â—Ž Neural Chat</b> â€” The main conversation engine. Switch between five different personas â€” from a default sharp assistant to a coding expert, data analyst, teacher, or creative writer. The chat remembers context across the session and responds in the language you use. Hinglish, English, Hindi â€” it adapts.
+<b style="color:var(--accent);">◎ Neural Chat</b> — The main conversation engine. Switch between five different personas — from a default sharp assistant to a coding expert, data analyst, teacher, or creative writer. The chat remembers context across the session and responds in the language you use. Hinglish, English, Hindi — it adapts.
 
 <br><br>
 
-<b style="color:var(--accent);">ðŸ–¼ Image Vision</b> â€” Powered by a dedicated vision model, NEXUS can analyze any image you throw at it. Extract text, identify objects, check vibes, get roasted for your terrible design choices, or ask any custom question about what's in the frame.
+<b style="color:var(--accent);">🖼 Image Vision</b> — Powered by a dedicated vision model, NEXUS can analyze any image you throw at it. Extract text, identify objects, check vibes, get roasted for your terrible design choices, or ask any custom question about what's in the frame.
 
 <br><br>
 
-<b style="color:var(--accent);">â—‰ Voice Command Interface</b> â€” Speak your query and NEXUS transcribes it using Whisper (a state-of-the-art speech recognition model) and then responds intelligently. Results automatically save to your Neural Chat history.
+<b style="color:var(--accent);">◉ Voice Command Interface</b> — Speak your query and NEXUS transcribes it using Whisper (a state-of-the-art speech recognition model) and then responds intelligently. Results automatically save to your Neural Chat history.
 
 <br><br>
 
-<b style="color:var(--accent);">ðŸ”„ Text Transform Engine</b> â€” Paste any text and convert it into Twitter threads, LinkedIn posts, formal emails, WhatsApp messages, summaries, bullet points, or translations with a single click. Eight transform modes, instant output.
+<b style="color:var(--accent);">🔄 Text Transform Engine</b> — Paste any text and convert it into Twitter threads, LinkedIn posts, formal emails, WhatsApp messages, summaries, bullet points, or translations with a single click. Eight transform modes, instant output.
 
 <br>
 
@@ -2663,17 +2661,17 @@ What Can NEXUS Actually Do?
 The Technical Stack
 </div>
 
-NEXUS runs on <b>Streamlit</b> for the UI, <b>Groq API</b> for inference, and a layered fallback engine that automatically switches models if one fails. The primary model is LLaMA 3.3 70B (Ultra tier) â€” one of the most capable open-weight models available. If that's unavailable, it falls through a chain to LLaMA 70B and then to LLaMA 8B Instant, so you almost never hit a dead end.
+NEXUS runs on <b>Streamlit</b> for the UI, <b>Groq API</b> for inference, and a layered fallback engine that automatically switches models if one fails. The primary model is LLaMA 3.3 70B (Ultra tier) — one of the most capable open-weight models available. If that's unavailable, it falls through a chain to LLaMA 70B and then to LLaMA 8B Instant, so you almost never hit a dead end.
 
-For image analysis, a dedicated vision model (LLaMA 3.2 Vision) handles multimodal inputs. Voice transcription runs on Whisper Large v3 â€” the same model that powers many production-grade transcription pipelines.
+For image analysis, a dedicated vision model (LLaMA 3.2 Vision) handles multimodal inputs. Voice transcription runs on Whisper Large v3 — the same model that powers many production-grade transcription pipelines.
 
-The themes are fully custom: Nova Crystal (dark gold), Arctic Frost (clean light), and Crimson Noir (dark red). The entire UI is hand-coded in CSS injected into Streamlit â€” no templates, no boilerplate.
+The themes are fully custom: Nova Crystal (dark gold), Arctic Frost (clean light), and Crimson Noir (dark red). The entire UI is hand-coded in CSS injected into Streamlit — no templates, no boilerplate.
 
 </div>
 """, unsafe_allow_html=True)
 
-        # â”€â”€ SECTION 3: How It Works (Technical Deep Dive) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        with st.expander("âš™ï¸  How NEXUS Works â€” Technical Deep Dive"):
+        # ── SECTION 3: How It Works (Technical Deep Dive) ─────────────────
+        with st.expander("⚙�?  How NEXUS Works — Technical Deep Dive"):
             st.markdown("""
 <div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
 
@@ -2681,7 +2679,7 @@ The themes are fully custom: Nova Crystal (dark gold), Arctic Frost (clean light
 Architecture Overview
 </div>
 
-NEXUS is a single-file Streamlit application (~2,600 lines) organized into clearly separated layers: theme system, safety filter, backend functions, UI renderers, and a routing layer at the bottom. There's no database, no user authentication, no persistent server-side state â€” everything lives in Streamlit's session state for the duration of your browser session.
+NEXUS is a single-file Streamlit application (~2,600 lines) organized into clearly separated layers: theme system, safety filter, backend functions, UI renderers, and a routing layer at the bottom. There's no database, no user authentication, no persistent server-side state — everything lives in Streamlit's session state for the duration of your browser session.
 
 <br>
 
@@ -2689,17 +2687,17 @@ NEXUS is a single-file Streamlit application (~2,600 lines) organized into clear
 The Inference Engine
 </div>
 
-All AI calls go through Groq's inference API. Groq uses custom hardware (LPUs â€” Language Processing Units) optimized specifically for transformer inference, which is why responses feel nearly instant compared to typical cloud GPU setups.
+All AI calls go through Groq's inference API. Groq uses custom hardware (LPUs — Language Processing Units) optimized specifically for transformer inference, which is why responses feel nearly instant compared to typical cloud GPU setups.
 
 The fallback chain works like this:
 
 <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 18px;margin:12px 0;font-family:var(--fb);font-size:12px;line-height:2.2;">
-Primary: LLaMA 3.3 70B Versatile (Ultra) <span style="color:var(--accent);">â†’</span> most capable<br>
-Fallback 1: LLaMA 3 70B 8192 (Balanced) <span style="color:var(--accent);">â†’</span> stable, reliable<br>
-Fallback 2: LLaMA 3.1 8B Instant (Fast) <span style="color:var(--accent);">â†’</span> lightweight, quick<br>
-Fallback 3: Gemma 2 9B IT <span style="color:var(--accent);">â†’</span> last resort<br>
-Vision: LLaMA 3.2 11B Vision Preview <span style="color:var(--accent);">â†’</span> image-only<br>
-Voice: Whisper Large v3 <span style="color:var(--accent);">â†’</span> transcription-only
+Primary: LLaMA 3.3 70B Versatile (Ultra) <span style="color:var(--accent);">→</span> most capable<br>
+Fallback 1: LLaMA 3 70B 8192 (Balanced) <span style="color:var(--accent);">→</span> stable, reliable<br>
+Fallback 2: LLaMA 3.1 8B Instant (Fast) <span style="color:var(--accent);">→</span> lightweight, quick<br>
+Fallback 3: Gemma 2 9B IT <span style="color:var(--accent);">→</span> last resort<br>
+Vision: LLaMA 3.2 11B Vision Preview <span style="color:var(--accent);">→</span> image-only<br>
+Voice: Whisper Large v3 <span style="color:var(--accent);">→</span> transcription-only
 </div>
 
 <br>
@@ -2710,15 +2708,15 @@ The 3-Layer Content Safety System
 
 NEXUS runs a three-layer content safety pipeline on every request:
 
-<b style="color:var(--accent);">Layer 1 â€” Pre-filter (keyword blacklist):</b> Before any API call is made, the user's input goes through a normalization pipeline. This includes Unicode NFKD decomposition (to catch Cyrillic lookalike attacks), extended leet-speak normalization (0â†’o, @â†’a, â‚¬â†’e, and 18+ substitutions), and word-split removal (so "b.o.m.b" and "b o m b" both resolve to "bomb"). The normalized text is then matched against a six-category blacklist covering terrorism, weapons, cybercrime, child safety, hate speech, and self-harm. If there's a match, the request is blocked instantly â€” no API call is made.
+<b style="color:var(--accent);">Layer 1 — Pre-filter (keyword blacklist):</b> Before any API call is made, the user's input goes through a normalization pipeline. This includes Unicode NFKD decomposition (to catch Cyrillic lookalike attacks), extended leet-speak normalization (0→o, @→a, €→e, and 18+ substitutions), and word-split removal (so "b.o.m.b" and "b o m b" both resolve to "bomb"). The normalized text is then matched against a six-category blacklist covering terrorism, weapons, cybercrime, child safety, hate speech, and self-harm. If there's a match, the request is blocked instantly — no API call is made.
 
 <br><br>
 
-<b style="color:var(--accent);">Layer 2 â€” LLM-level system prompt enforcement:</b> Every single API call â€” regardless of which feature triggered it â€” has a strict safety instruction block appended to the system prompt. The model is explicitly told that if it detects a request related to any banned category (regardless of phrasing, roleplay framing, academic framing, or any obfuscation attempt), it must respond with only a specific sentinel token and nothing else.
+<b style="color:var(--accent);">Layer 2 — LLM-level system prompt enforcement:</b> Every single API call — regardless of which feature triggered it — has a strict safety instruction block appended to the system prompt. The model is explicitly told that if it detects a request related to any banned category (regardless of phrasing, roleplay framing, academic framing, or any obfuscation attempt), it must respond with only a specific sentinel token and nothing else.
 
 <br><br>
 
-<b style="color:var(--accent);">Layer 3 â€” Post-response sentinel check:</b> After the model responds, NEXUS checks whether the response contains the sentinel token. If it does, the raw model output is discarded entirely and replaced with a clean English-language refusal message. The user never sees the sentinel or any partial harmful content.
+<b style="color:var(--accent);">Layer 3 — Post-response sentinel check:</b> After the model responds, NEXUS checks whether the response contains the sentinel token. If it does, the raw model output is discarded entirely and replaced with a clean English-language refusal message. The user never sees the sentinel or any partial harmful content.
 
 <br>
 
@@ -2726,7 +2724,7 @@ NEXUS runs a three-layer content safety pipeline on every request:
 Session & Rate Limiting
 </div>
 
-Each browser session gets 15 free messages. The counter tracks across all features â€” chat, document analysis, YouTube, image, voice, and transforms all count toward the same session limit. When the limit is hit, a soft lock screen appears with the option to start a fresh session instantly (no login required).
+Each browser session gets 15 free messages. The counter tracks across all features — chat, document analysis, YouTube, image, voice, and transforms all count toward the same session limit. When the limit is hit, a soft lock screen appears with the option to start a fresh session instantly (no login required).
 
 Additionally, a rolling rate limiter allows a maximum of 20 requests per 60-second window per session. This prevents automated abuse and ensures fair use when the platform is under load.
 
@@ -2736,22 +2734,22 @@ Additionally, a rolling rate limiter allows a maximum of 20 requests per 60-seco
 Document Processing Pipeline
 </div>
 
-Documents are processed entirely in-memory â€” nothing is written to disk. PDFs are parsed with pdfplumber (with PyPDF2 as fallback). DOCX files use python-docx. CSV and plain text files are decoded directly. Documents larger than 28,000 characters are truncated before being sent to the model, to stay within context limits. The truncation point is clearly marked in the output so you know if something was cut.
+Documents are processed entirely in-memory — nothing is written to disk. PDFs are parsed with pdfplumber (with PyPDF2 as fallback). DOCX files use python-docx. CSV and plain text files are decoded directly. Documents larger than 28,000 characters are truncated before being sent to the model, to stay within context limits. The truncation point is clearly marked in the output so you know if something was cut.
 
 </div>
 """, unsafe_allow_html=True)
 
-        # â”€â”€ SECTION 4: Privacy Policy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        with st.expander("ðŸ”’  Privacy Policy"):
+        # ── SECTION 4: Privacy Policy ──────────────────────────────────────
+        with st.expander("🔒  Privacy Policy"):
             st.markdown("""
 <div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
 
 <div style="font-family:var(--fb);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:-.02em;">
-Privacy Policy â€” NEXUS Intelligence Platform
+Privacy Policy — NEXUS Intelligence Platform
 </div>
 
 <div style="font-family:var(--fb);font-size:10px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px;">
-Last updated: 2026 Â· Effective immediately
+Last updated: 2026 · Effective immediately
 </div>
 
 This privacy policy explains how NEXUS handles your data. The short version: we collect as little as possible, we don't store anything on our end, and your conversations stay in your browser.
@@ -2768,7 +2766,7 @@ Your chat history, uploaded documents, and conversation context exist solely in 
 
 <b style="color:var(--accent);">API Calls and Third-Party Processing</b>
 
-When you send a message, analyze a document, or upload an image, your input is transmitted to Groq's API for inference. This means your text or image data passes through Groq's servers for the purpose of generating a response. NEXUS does not control how Groq handles this data â€” you should review Groq's own privacy policy at groq.com if you have concerns about their data handling practices.
+When you send a message, analyze a document, or upload an image, your input is transmitted to Groq's API for inference. This means your text or image data passes through Groq's servers for the purpose of generating a response. NEXUS does not control how Groq handles this data — you should review Groq's own privacy policy at groq.com if you have concerns about their data handling practices.
 
 The Groq API key used by NEXUS is stored as a server-side secret and is never exposed to end users or included in any client-side code.
 
@@ -2799,8 +2797,8 @@ If this policy changes in a material way, we will update the "Last updated" date
 </div>
 """, unsafe_allow_html=True)
 
-        # â”€â”€ SECTION 5: Content Policy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        with st.expander("âŠ˜  Content Policy & Prohibited Uses"):
+        # ── SECTION 5: Content Policy ──────────────────────────────────────
+        with st.expander("⊘  Content Policy & Prohibited Uses"):
             st.markdown("""
 <div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
 
@@ -2808,7 +2806,7 @@ If this policy changes in a material way, we will update the "Last updated" date
 Content Policy
 </div>
 
-NEXUS runs a strict content safety filter. Certain categories of requests are blocked at multiple levels â€” before the API call, during the model's processing, and after the response is generated. This is not optional and cannot be bypassed.
+NEXUS runs a strict content safety filter. Certain categories of requests are blocked at multiple levels — before the API call, during the model's processing, and after the response is generated. This is not optional and cannot be bypassed.
 
 <br>
 
@@ -2817,12 +2815,12 @@ NEXUS runs a strict content safety filter. Certain categories of requests are bl
 The following categories of content will always be blocked, regardless of framing, context, roleplay setup, fictional wrapping, academic justification, or any other framing technique:
 
 <div style="background:rgba(217,85,85,0.06);border:1px solid rgba(217,85,85,0.2);border-left:2px solid #d95555;border-radius:var(--r-sm);padding:14px 18px;margin:12px 0;font-size:13px;line-height:2.1;">
-âŠ˜ &nbsp; Terrorism, extremist content, attack planning, or recruitment material<br>
-âŠ˜ &nbsp; Instructions for weapons, explosives, or weapons of mass destruction<br>
-âŠ˜ &nbsp; Malware creation, hacking attacks, phishing tools, or cybercrime assistance<br>
-âŠ˜ &nbsp; Any content involving the sexual exploitation of minors<br>
-âŠ˜ &nbsp; Hate speech, genocide planning, or incitement to ethnic or religious violence<br>
-âŠ˜ &nbsp; Detailed methods for suicide or self-harm
+⊘ &nbsp; Terrorism, extremist content, attack planning, or recruitment material<br>
+⊘ &nbsp; Instructions for weapons, explosives, or weapons of mass destruction<br>
+⊘ &nbsp; Malware creation, hacking attacks, phishing tools, or cybercrime assistance<br>
+⊘ &nbsp; Any content involving the sexual exploitation of minors<br>
+⊘ &nbsp; Hate speech, genocide planning, or incitement to ethnic or religious violence<br>
+⊘ &nbsp; Detailed methods for suicide or self-harm
 </div>
 
 Attempting to bypass these filters using leet-speak (h@ck, b0mb), Unicode lookalike characters, word-splitting (b.o.m.b), or semantic obfuscation will not work. The safety system operates at the character normalization level, not just at surface pattern matching.
@@ -2842,8 +2840,8 @@ Attempted violations are blocked silently at the application level. Repeated att
 </div>
 """, unsafe_allow_html=True)
 
-        # â”€â”€ SECTION 6: Terms & Conditions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        with st.expander("ðŸ“‹  Terms & Conditions â€” Full Text"):
+        # ── SECTION 6: Terms & Conditions ─────────────────────────────────
+        with st.expander("📋  Terms & Conditions — Full Text"):
             st.markdown("""
 <div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
 
@@ -2851,7 +2849,7 @@ Attempted violations are blocked silently at the application level. Repeated att
 Terms and Conditions of Use
 </div>
 <div style="font-family:var(--fb);font-size:10px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;">
-NEXUS Intelligence Platform Â· v5.1.0 Â· Effective: 2026
+NEXUS Intelligence Platform · v5.1.0 · Effective: 2026
 </div>
 
 Please read these Terms carefully before using NEXUS. By accessing or using this platform in any capacity, you agree to be bound by the terms stated here. If you do not agree with any part of these terms, you should stop using the platform immediately.
@@ -2875,7 +2873,7 @@ NEXUS is a free-to-use, multi-modal AI intelligence platform providing the follo
 <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 18px;margin:10px 0;font-size:13px;line-height:2.3;">
 <b style="color:var(--accent);">Free message limit:</b> &nbsp; 15 messages per browser session<br>
 <b style="color:var(--accent);">Rate limit:</b> &nbsp; Maximum 20 requests per 60-second rolling window<br>
-<b style="color:var(--accent);">Session reset:</b> &nbsp; Start a new session anytime â€” no cooldown required<br>
+<b style="color:var(--accent);">Session reset:</b> &nbsp; Start a new session anytime — no cooldown required<br>
 <b style="color:var(--accent);">Context window:</b> &nbsp; 128,000 tokens (shared across session)<br>
 <b style="color:var(--accent);">Document size:</b> &nbsp; Up to 200MB upload, 28,000 characters processed<br>
 <b style="color:var(--accent);">Image formats:</b> &nbsp; PNG, JPG, JPEG, WEBP, GIF<br>
@@ -2914,7 +2912,7 @@ You agree not to use NEXUS for any of the following purposes:
 
 <b style="color:var(--accent);">5. Intellectual Property</b>
 
-All original design elements, CSS styling, layout architecture, and code structure of NEXUS are the intellectual property of the developer. The underlying AI models are the property of their respective developers and are licensed separately. Content you upload or generate through NEXUS remains your own â€” we claim no ownership over your inputs or outputs.
+All original design elements, CSS styling, layout architecture, and code structure of NEXUS are the intellectual property of the developer. The underlying AI models are the property of their respective developers and are licensed separately. Content you upload or generate through NEXUS remains your own — we claim no ownership over your inputs or outputs.
 
 <br>
 
@@ -2961,7 +2959,7 @@ If you have questions about these terms, encounter a bug, want to report abuse, 
 </div>
 """, unsafe_allow_html=True)
 
-        # â”€â”€ Bottom legal strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Bottom legal strip ─────────────────────────────────────────────
         st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
         st.markdown("""
         <div style="border-top:1px solid var(--border);padding:24px 0 8px;text-align:center;">
@@ -2971,26 +2969,26 @@ If you have questions about these terms, encounter a bug, want to report abuse, 
                 NEXUS Intelligence Platform
             </div>
             <div style="font-family:var(--fs);font-size:11px;color:var(--tx-3);line-height:2;">
-                Powered by Nexus&nbsp;Â·&nbsp; v5.1.0 &nbsp;Â·&nbsp; Â© 2026<br>
-                All rights reserved &nbsp;Â·&nbsp; Made in India
+                Powered by Nexus&nbsp;·&nbsp; v5.1.0 &nbsp;·&nbsp; © 2026<br>
+                All rights reserved &nbsp;·&nbsp; Made in India
             </div>
             <div style="margin-top:16px;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;">
                 <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Privacy Policy</span>
-                <span style="color:var(--border);">Â·</span>
+                <span style="color:var(--border);">·</span>
                 <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Terms & Conditions</span>
-                <span style="color:var(--border);">Â·</span>
+                <span style="color:var(--border);">·</span>
                 <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Content Policy</span>
-                <span style="color:var(--border);">Â·</span>
+                <span style="color:var(--border);">·</span>
                 <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Open Source Licenses</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
 #  ROUTER
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-if False:  # Landing page disabled â€” direct to app
+# �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
+if False:  # Landing page disabled — direct to app
     render_landing_page()
 else:
     api_key, temperature, model_tier = render_sidebar()
