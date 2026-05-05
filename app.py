@@ -1293,7 +1293,7 @@ def _init_state():
 _init_state()
 
 theme_vars = THEME_VARS.get(st.session_state.theme, THEME_VARS["Nova Crystal"])
-st.markdown(BASE_CSS.format(theme_vars=theme_vars), unsafe_allow_html=True)
+st.markdown(BASE_CSS.replace("{theme_vars}", theme_vars), unsafe_allow_html=True)
 
 # ─── Long-press context menu JS ───
 st.markdown("""
