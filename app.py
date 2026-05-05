@@ -272,49 +272,49 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
 .nova-bub-user .stMarkdown p {{ margin: 0 0 6px 0; }}
 [data-testid="InputInstructions"] {{ display: none !important; }}
 /* ── Login Wall ── */
-.nexus-login-wall {{
+.nexus-login-wall {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(13,13,16,0.96);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     z-index: 999998;
     display: flex; align-items: center; justify-content: center;
     padding: 20px;
-}}
-.nexus-login-card {{
+}
+.nexus-login-card {
     background: var(--s1); border: 1px solid var(--border-h);
     border-radius: 18px; padding: 36px 32px;
     max-width: 420px; width: 100%; text-align: center;
     box-shadow: 0 24px 80px rgba(0,0,0,0.6);
-}}
-.nexus-login-icon {{
+}
+.nexus-login-icon {
     font-size: 40px; margin-bottom: 16px;
-}}
-.nexus-login-title {{
+}
+.nexus-login-title {
     font-family: var(--fb); font-size: 20px; font-weight: 800;
     color: var(--tx); letter-spacing: -.03em; margin-bottom: 8px;
-}}
-.nexus-login-sub {{
+}
+.nexus-login-sub {
     font-family: var(--fs); font-size: 13px; color: var(--tx-2);
     line-height: 1.7; margin-bottom: 24px;
-}}
-.nexus-login-badge {{
+}
+.nexus-login-badge {
     display: inline-block; background: var(--accent-glow);
     border: 1px solid var(--accent-ring); border-radius: 20px;
     padding: 4px 14px; font-family: var(--fb); font-size: 11px;
     font-weight: 700; color: var(--accent); letter-spacing: .06em;
     margin-bottom: 20px;
-}}
-.nexus-free-bar {{
+}
+.nexus-free-bar {
     background: var(--s2); border-radius: 8px; height: 6px;
     margin: 12px 0 20px; overflow: hidden;
-}}
-.nexus-free-fill {{
+}
+.nexus-free-fill {
     height: 100%; border-radius: 8px;
     background: linear-gradient(90deg, var(--accent), var(--accent-h));
     transition: width .4s ease;
-}}
+}
 /* ── Image Vision Section ── */
-.img-upload-zone {{
+.img-upload-zone {
     border: 2px dashed var(--border-h);
     border-radius: var(--r);
     padding: 32px 20px;
@@ -322,67 +322,67 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
     background: var(--s1);
     transition: var(--transition);
     margin-bottom: 4px;
-}}
-.img-upload-zone:hover {{ border-color: var(--accent); background: var(--s2); }}
-.img-upload-icon {{ font-size: 36px; margin-bottom: 10px; }}
-.img-upload-title {{
+}
+.img-upload-zone:hover { border-color: var(--accent); background: var(--s2); }
+.img-upload-icon { font-size: 36px; margin-bottom: 10px; }
+.img-upload-title {
     font-family: var(--fb); font-size: 14px; font-weight: 700;
     color: var(--tx); margin-bottom: 4px;
-}}
-.img-upload-sub {{
+}
+.img-upload-sub {
     font-family: var(--fb); font-size: 11px; color: var(--tx-3);
     letter-spacing: .06em; text-transform: uppercase;
-}}
-.img-preview-wrap {{
+}
+.img-preview-wrap {
     border-radius: var(--r); overflow: hidden;
     border: 1px solid var(--border); margin: 12px 0;
     background: var(--s1);
-}}
-.img-meta-row {{
+}
+.img-meta-row {
     display: flex; align-items: center; gap: 12px;
     padding: 8px 12px; background: var(--s2);
     border-top: 1px solid var(--border);
     font-family: var(--fb); font-size: 10px; color: var(--tx-3);
     letter-spacing: .05em;
-}}
-.img-meta-dot {{ color: var(--accent); font-size: 8px; }}
-.img-mode-grid {{
+}
+.img-meta-dot { color: var(--accent); font-size: 8px; }
+.img-mode-grid {
     display: grid; grid-template-columns: 1fr 1fr;
     gap: 8px; margin: 12px 0;
-}}
-.img-mode-card {{
+}
+.img-mode-card {
     background: var(--s1); border: 1px solid var(--border);
     border-radius: 10px; padding: 11px 14px; cursor: pointer;
     transition: var(--transition); text-align: left;
-}}
-.img-mode-card:hover {{ border-color: var(--accent); background: var(--s2); }}
-.img-mode-card.selected {{ border-color: var(--accent); background: var(--accent-glow); }}
-.img-mode-icon {{ font-size: 18px; margin-bottom: 4px; }}
-.img-mode-label {{
+}
+.img-mode-card:hover { border-color: var(--accent); background: var(--s2); }
+.img-mode-card.selected { border-color: var(--accent); background: var(--accent-glow); }
+.img-mode-icon { font-size: 18px; margin-bottom: 4px; }
+.img-mode-label {
     font-family: var(--fb); font-size: 11px; font-weight: 700;
     color: var(--tx); display: block; margin-bottom: 2px;
-}}
-.img-mode-desc {{ font-family: var(--fs); font-size: 10px; color: var(--tx-3); }}
-.img-result-header {{
+}
+.img-mode-desc { font-family: var(--fs); font-size: 10px; color: var(--tx-3); }
+.img-result-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 18px; background: var(--s2);
     border: 1px solid var(--border); border-radius: var(--r) var(--r) 0 0;
     margin-top: 20px;
-}}
-.img-result-title {{
+}
+.img-result-title {
     font-family: var(--fb); font-size: 13px; font-weight: 700; color: var(--tx);
-}}
-.img-result-badge {{
+}
+.img-result-badge {
     font-family: var(--fb); font-size: 9px; font-weight: 700;
     letter-spacing: .1em; text-transform: uppercase;
     color: var(--accent); background: var(--accent-glow);
     border: 1px solid var(--accent-ring); border-radius: 20px; padding: 3px 10px;
-}}
-.img-result-body {{
+}
+.img-result-body {
     background: var(--s1); border: 1px solid var(--border);
     border-top: none; border-radius: 0 0 var(--r) var(--r);
     padding: 18px 18px 14px;
-}}
+}
 /* Hide keyboard_double artifact */
 [data-testid="stSidebarContent"] > div:first-child > small,
 .st-emotion-cache-pkbazv, .eyeqlp51 {{ display: none !important; }}
@@ -1293,7 +1293,7 @@ def _init_state():
 _init_state()
 
 theme_vars = THEME_VARS.get(st.session_state.theme, THEME_VARS["Nova Crystal"])
-st.markdown(BASE_CSS.replace("{theme_vars}", theme_vars), unsafe_allow_html=True)
+st.html(BASE_CSS.replace("{theme_vars}", theme_vars))
 
 # ─── Long-press context menu JS ───
 st.markdown("""
