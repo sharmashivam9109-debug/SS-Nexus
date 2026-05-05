@@ -272,49 +272,49 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
 .nova-bub-user .stMarkdown p {{ margin: 0 0 6px 0; }}
 [data-testid="InputInstructions"] {{ display: none !important; }}
 /* ── Login Wall ── */
-.nexus-login-wall {{
+.nexus-login-wall {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(13,13,16,0.96);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     z-index: 999998;
     display: flex; align-items: center; justify-content: center;
     padding: 20px;
-}}
-.nexus-login-card {{
+}
+.nexus-login-card {
     background: var(--s1); border: 1px solid var(--border-h);
     border-radius: 18px; padding: 36px 32px;
     max-width: 420px; width: 100%; text-align: center;
     box-shadow: 0 24px 80px rgba(0,0,0,0.6);
-}}
-.nexus-login-icon {{
+}
+.nexus-login-icon {
     font-size: 40px; margin-bottom: 16px;
-}}
-.nexus-login-title {{
+}
+.nexus-login-title {
     font-family: var(--fb); font-size: 20px; font-weight: 800;
     color: var(--tx); letter-spacing: -.03em; margin-bottom: 8px;
-}}
-.nexus-login-sub {{
+}
+.nexus-login-sub {
     font-family: var(--fs); font-size: 13px; color: var(--tx-2);
     line-height: 1.7; margin-bottom: 24px;
-}}
-.nexus-login-badge {{
+}
+.nexus-login-badge {
     display: inline-block; background: var(--accent-glow);
     border: 1px solid var(--accent-ring); border-radius: 20px;
     padding: 4px 14px; font-family: var(--fb); font-size: 11px;
     font-weight: 700; color: var(--accent); letter-spacing: .06em;
     margin-bottom: 20px;
-}}
-.nexus-free-bar {{
+}
+.nexus-free-bar {
     background: var(--s2); border-radius: 8px; height: 6px;
     margin: 12px 0 20px; overflow: hidden;
-}}
-.nexus-free-fill {{
+}
+.nexus-free-fill {
     height: 100%; border-radius: 8px;
     background: linear-gradient(90deg, var(--accent), var(--accent-h));
     transition: width .4s ease;
-}}
+}
 /* ── Image Vision Section ── */
-.img-upload-zone {{
+.img-upload-zone {
     border: 2px dashed var(--border-h);
     border-radius: var(--r);
     padding: 32px 20px;
@@ -322,67 +322,67 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
     background: var(--s1);
     transition: var(--transition);
     margin-bottom: 4px;
-}}
-.img-upload-zone:hover {{ border-color: var(--accent); background: var(--s2); }}
-.img-upload-icon {{ font-size: 36px; margin-bottom: 10px; }}
-.img-upload-title {{
+}
+.img-upload-zone:hover { border-color: var(--accent); background: var(--s2); }
+.img-upload-icon { font-size: 36px; margin-bottom: 10px; }
+.img-upload-title {
     font-family: var(--fb); font-size: 14px; font-weight: 700;
     color: var(--tx); margin-bottom: 4px;
-}}
-.img-upload-sub {{
+}
+.img-upload-sub {
     font-family: var(--fb); font-size: 11px; color: var(--tx-3);
     letter-spacing: .06em; text-transform: uppercase;
-}}
-.img-preview-wrap {{
+}
+.img-preview-wrap {
     border-radius: var(--r); overflow: hidden;
     border: 1px solid var(--border); margin: 12px 0;
     background: var(--s1);
-}}
-.img-meta-row {{
+}
+.img-meta-row {
     display: flex; align-items: center; gap: 12px;
     padding: 8px 12px; background: var(--s2);
     border-top: 1px solid var(--border);
     font-family: var(--fb); font-size: 10px; color: var(--tx-3);
     letter-spacing: .05em;
-}}
-.img-meta-dot {{ color: var(--accent); font-size: 8px; }}
-.img-mode-grid {{
+}
+.img-meta-dot { color: var(--accent); font-size: 8px; }
+.img-mode-grid {
     display: grid; grid-template-columns: 1fr 1fr;
     gap: 8px; margin: 12px 0;
-}}
-.img-mode-card {{
+}
+.img-mode-card {
     background: var(--s1); border: 1px solid var(--border);
     border-radius: 10px; padding: 11px 14px; cursor: pointer;
     transition: var(--transition); text-align: left;
-}}
-.img-mode-card:hover {{ border-color: var(--accent); background: var(--s2); }}
-.img-mode-card.selected {{ border-color: var(--accent); background: var(--accent-glow); }}
-.img-mode-icon {{ font-size: 18px; margin-bottom: 4px; }}
-.img-mode-label {{
+}
+.img-mode-card:hover { border-color: var(--accent); background: var(--s2); }
+.img-mode-card.selected { border-color: var(--accent); background: var(--accent-glow); }
+.img-mode-icon { font-size: 18px; margin-bottom: 4px; }
+.img-mode-label {
     font-family: var(--fb); font-size: 11px; font-weight: 700;
     color: var(--tx); display: block; margin-bottom: 2px;
-}}
-.img-mode-desc {{ font-family: var(--fs); font-size: 10px; color: var(--tx-3); }}
-.img-result-header {{
+}
+.img-mode-desc { font-family: var(--fs); font-size: 10px; color: var(--tx-3); }
+.img-result-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 18px; background: var(--s2);
     border: 1px solid var(--border); border-radius: var(--r) var(--r) 0 0;
     margin-top: 20px;
-}}
-.img-result-title {{
+}
+.img-result-title {
     font-family: var(--fb); font-size: 13px; font-weight: 700; color: var(--tx);
-}}
-.img-result-badge {{
+}
+.img-result-badge {
     font-family: var(--fb); font-size: 9px; font-weight: 700;
     letter-spacing: .1em; text-transform: uppercase;
     color: var(--accent); background: var(--accent-glow);
     border: 1px solid var(--accent-ring); border-radius: 20px; padding: 3px 10px;
-}}
-.img-result-body {{
+}
+.img-result-body {
     background: var(--s1); border: 1px solid var(--border);
     border-top: none; border-radius: 0 0 var(--r) var(--r);
     padding: 18px 18px 14px;
-}}
+}
 /* Hide keyboard_double artifact */
 [data-testid="stSidebarContent"] > div:first-child > small,
 .st-emotion-cache-pkbazv, .eyeqlp51 {{ display: none !important; }}
@@ -1748,14 +1748,13 @@ def render_dashboard(api_key, temperature, model_tier):
     </div>
     """, unsafe_allow_html=True)
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "  ◈  Document  ",
         "  ▶  YouTube  ",
         "  ◎  Neural Chat  ",
         "  🖼  Image Vision  ",
         "  ◉  Voice  ",
         "  🔄  Transform  ",
-        "  ⓘ  About & Legal  ",
     ])
 
     # ═══ TAB 1: Document ═══
@@ -2584,434 +2583,5 @@ def render_dashboard(api_key, temperature, model_tier):
                             file_name=f"nexus_transform_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
                             mime="text/plain",
                             use_container_width=True,
-                            key="transform_download"
-                        )
-
-
-    # ═══ TAB 7: About & Legal ═══
-    with tab7:
-
-        # ── Page Hero ──────────────────────────────────────────────────────
-        st.markdown("""
-        <div style="text-align:center;padding:40px 20px 32px;">
-            <div style="width:64px;height:64px;border-radius:16px;
-                        background:var(--accent-glow);border:1px solid var(--accent-ring);
-                        display:inline-flex;align-items:center;justify-content:center;
-                        font-family:var(--fb);font-size:26px;font-weight:800;
-                        color:var(--accent);margin-bottom:20px;">N</div>
-            <div style="font-family:var(--fb);font-size:10px;font-weight:700;
-                        letter-spacing:.18em;text-transform:uppercase;
-                        color:var(--tx-3);margin-bottom:12px;">Intelligence Platform · v5.1.0</div>
-            <div style="font-family:var(--fb);font-size:32px;font-weight:800;
-                        letter-spacing:-.04em;color:var(--tx);margin-bottom:10px;">
-                NEXUS<span style="color:var(--accent);">.</span>
-            </div>
-            <div style="font-family:var(--fs);font-size:14px;color:var(--tx-2);
-                        max-width:480px;margin:0 auto;line-height:1.8;">
-                A multi-modal AI intelligence platform — built from scratch,
-                designed for real use, and made to actually work.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("<div style='height:4px;background:linear-gradient(90deg,transparent,var(--accent-ring),transparent);margin-bottom:28px;'></div>", unsafe_allow_html=True)
-
-        # ── SECTION 1: About the Platform ─────────────────────────────────
-        with st.expander("◈  About NEXUS — The Full Story", expanded=True):
-            st.markdown("""
-<div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
-
-<div style="font-family:var(--fb);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:-.02em;">
-What is NEXUS?
-</div>
-
-NEXUS is a multi-modal AI intelligence platform built on top of Groq's ultra-fast inference engine. It's not just another chatbot wrapper — it's a full-stack productivity tool designed to handle real tasks: analyzing lengthy documents, breaking down YouTube videos you don't have time to watch, understanding images, processing voice commands, and transforming text into whatever format you need in seconds.
-
-The idea was simple: most AI tools feel like toys. They're slow, they hallucinate constantly, and they don't actually fit into a real workflow. NEXUS was built to be different — fast, focused, and genuinely useful for someone who has actual work to do.
-
-<br>
-
-<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
-What Can NEXUS Actually Do?
-</div>
-
-<b style="color:var(--accent);">◈ Document Intelligence</b> — Upload any PDF, DOCX, TXT, or CSV file and NEXUS will read the whole thing, find what matters, and present it in a format that saves you hours. From full semantic analysis to executive summaries, entity extraction to debate generation — it handles documents the way a sharp analyst would, not the way a search engine does.
-
-<br><br>
-
-<b style="color:var(--accent);">▶ YouTube Intelligence Architect</b> — Paste a YouTube URL and NEXUS fetches the transcript, processes it, and gives you key moments with timestamps, actionable insights, chapter breakdowns, quiz questions, and more. You get the value of a 40-minute video in under a minute.
-
-<br><br>
-
-<b style="color:var(--accent);">◎ Neural Chat</b> — The main conversation engine. Switch between five different personas — from a default sharp assistant to a coding expert, data analyst, teacher, or creative writer. The chat remembers context across the session and responds in the language you use. Hinglish, English, Hindi — it adapts.
-
-<br><br>
-
-<b style="color:var(--accent);">🖼 Image Vision</b> — Powered by a dedicated vision model, NEXUS can analyze any image you throw at it. Extract text, identify objects, check vibes, get roasted for your terrible design choices, or ask any custom question about what's in the frame.
-
-<br><br>
-
-<b style="color:var(--accent);">◉ Voice Command Interface</b> — Speak your query and NEXUS transcribes it using Whisper (a state-of-the-art speech recognition model) and then responds intelligently. Results automatically save to your Neural Chat history.
-
-<br><br>
-
-<b style="color:var(--accent);">🔄 Text Transform Engine</b> — Paste any text and convert it into Twitter threads, LinkedIn posts, formal emails, WhatsApp messages, summaries, bullet points, or translations with a single click. Eight transform modes, instant output.
-
-<br>
-
-<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
-The Technical Stack
-</div>
-
-NEXUS runs on <b>Streamlit</b> for the UI, <b>Groq API</b> for inference, and a layered fallback engine that automatically switches models if one fails. The primary model is LLaMA 3.3 70B (Ultra tier) — one of the most capable open-weight models available. If that's unavailable, it falls through a chain to LLaMA 70B and then to LLaMA 8B Instant, so you almost never hit a dead end.
-
-For image analysis, a dedicated vision model (LLaMA 3.2 Vision) handles multimodal inputs. Voice transcription runs on Whisper Large v3 — the same model that powers many production-grade transcription pipelines.
-
-The themes are fully custom: Nova Crystal (dark gold), Arctic Frost (clean light), and Crimson Noir (dark red). The entire UI is hand-coded in CSS injected into Streamlit — no templates, no boilerplate.
-
-</div>
-""", unsafe_allow_html=True)
-
-        # ── SECTION 3: How It Works (Technical Deep Dive) ─────────────────
-        with st.expander("⚙️  How NEXUS Works — Technical Deep Dive"):
-            st.markdown("""
-<div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
-
-<div style="font-family:var(--fb);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:-.02em;">
-Architecture Overview
-</div>
-
-NEXUS is a single-file Streamlit application (~2,600 lines) organized into clearly separated layers: theme system, safety filter, backend functions, UI renderers, and a routing layer at the bottom. There's no database, no user authentication, no persistent server-side state — everything lives in Streamlit's session state for the duration of your browser session.
-
-<br>
-
-<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
-The Inference Engine
-</div>
-
-All AI calls go through Groq's inference API. Groq uses custom hardware (LPUs — Language Processing Units) optimized specifically for transformer inference, which is why responses feel nearly instant compared to typical cloud GPU setups.
-
-The fallback chain works like this:
-
-<div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 18px;margin:12px 0;font-family:var(--fb);font-size:12px;line-height:2.2;">
-Primary: LLaMA 3.3 70B Versatile (Ultra) <span style="color:var(--accent);">→</span> most capable<br>
-Fallback 1: LLaMA 3 70B 8192 (Balanced) <span style="color:var(--accent);">→</span> stable, reliable<br>
-Fallback 2: LLaMA 3.1 8B Instant (Fast) <span style="color:var(--accent);">→</span> lightweight, quick<br>
-Fallback 3: Gemma 2 9B IT <span style="color:var(--accent);">→</span> last resort<br>
-Vision: LLaMA 3.2 11B Vision Preview <span style="color:var(--accent);">→</span> image-only<br>
-Voice: Whisper Large v3 <span style="color:var(--accent);">→</span> transcription-only
-</div>
-
-<br>
-
-<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
-The 3-Layer Content Safety System
-</div>
-
-NEXUS runs a three-layer content safety pipeline on every request:
-
-<b style="color:var(--accent);">Layer 1 — Pre-filter (keyword blacklist):</b> Before any API call is made, the user's input goes through a normalization pipeline. This includes Unicode NFKD decomposition (to catch Cyrillic lookalike attacks), extended leet-speak normalization (0→o, @→a, €→e, and 18+ substitutions), and word-split removal (so "b.o.m.b" and "b o m b" both resolve to "bomb"). The normalized text is then matched against a six-category blacklist covering terrorism, weapons, cybercrime, child safety, hate speech, and self-harm. If there's a match, the request is blocked instantly — no API call is made.
-
-<br><br>
-
-<b style="color:var(--accent);">Layer 2 — LLM-level system prompt enforcement:</b> Every single API call — regardless of which feature triggered it — has a strict safety instruction block appended to the system prompt. The model is explicitly told that if it detects a request related to any banned category (regardless of phrasing, roleplay framing, academic framing, or any obfuscation attempt), it must respond with only a specific sentinel token and nothing else.
-
-<br><br>
-
-<b style="color:var(--accent);">Layer 3 — Post-response sentinel check:</b> After the model responds, NEXUS checks whether the response contains the sentinel token. If it does, the raw model output is discarded entirely and replaced with a clean English-language refusal message. The user never sees the sentinel or any partial harmful content.
-
-<br>
-
-<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
-Session & Rate Limiting
-</div>
-
-Each browser session gets 15 free messages. The counter tracks across all features — chat, document analysis, YouTube, image, voice, and transforms all count toward the same session limit. When the limit is hit, a soft lock screen appears with the option to start a fresh session instantly (no login required).
-
-Additionally, a rolling rate limiter allows a maximum of 20 requests per 60-second window per session. This prevents automated abuse and ensures fair use when the platform is under load.
-
-<br>
-
-<div style="font-family:var(--fb);font-size:14px;font-weight:700;color:var(--tx);margin:18px 0 10px;letter-spacing:-.02em;">
-Document Processing Pipeline
-</div>
-
-Documents are processed entirely in-memory — nothing is written to disk. PDFs are parsed with pdfplumber (with PyPDF2 as fallback). DOCX files use python-docx. CSV and plain text files are decoded directly. Documents larger than 28,000 characters are truncated before being sent to the model, to stay within context limits. The truncation point is clearly marked in the output so you know if something was cut.
-
-</div>
-""", unsafe_allow_html=True)
-
-        # ── SECTION 4: Privacy Policy ──────────────────────────────────────
-        with st.expander("🔒  Privacy Policy"):
-            st.markdown("""
-<div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
-
-<div style="font-family:var(--fb);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:-.02em;">
-Privacy Policy — NEXUS Intelligence Platform
-</div>
-
-<div style="font-family:var(--fb);font-size:10px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px;">
-Last updated: 2026 · Effective immediately
-</div>
-
-This privacy policy explains how NEXUS handles your data. The short version: we collect as little as possible, we don't store anything on our end, and your conversations stay in your browser.
-
-<br>
-
-<b style="color:var(--accent);">What We Collect</b>
-
-NEXUS does not collect, store, or transmit any personally identifiable information. There is no user registration, no login system, and no account creation. We do not store your name, email address, IP address, device identifiers, or any other personal data on our servers.
-
-Your chat history, uploaded documents, and conversation context exist solely in your browser's session memory (Streamlit session state). When you close your browser tab or refresh the page, this data is gone permanently from our end. We cannot retrieve it, and we do not attempt to.
-
-<br>
-
-<b style="color:var(--accent);">API Calls and Third-Party Processing</b>
-
-When you send a message, analyze a document, or upload an image, your input is transmitted to Groq's API for inference. This means your text or image data passes through Groq's servers for the purpose of generating a response. NEXUS does not control how Groq handles this data — you should review Groq's own privacy policy at groq.com if you have concerns about their data handling practices.
-
-The Groq API key used by NEXUS is stored as a server-side secret and is never exposed to end users or included in any client-side code.
-
-<br>
-
-<b style="color:var(--accent);">YouTube Transcript Processing</b>
-
-When you use the YouTube feature, NEXUS fetches publicly available transcripts from YouTube's servers using the youtube-transcript-api library. No login, cookies, or YouTube account credentials are used. Only publicly accessible transcript data is retrieved.
-
-<br>
-
-<b style="color:var(--accent);">Cookies and Tracking</b>
-
-NEXUS does not use cookies. We do not use Google Analytics, Facebook Pixel, or any other third-party tracking or analytics service. We do not serve advertisements. There is no tracking of your behavior across sessions.
-
-<br>
-
-<b style="color:var(--accent);">Children's Privacy</b>
-
-NEXUS is not intended for use by individuals under the age of 13. We do not knowingly collect any information from children. If you believe a child has submitted data through this platform, please contact us and we will take appropriate action.
-
-<br>
-
-<b style="color:var(--accent);">Changes to This Policy</b>
-
-If this policy changes in a material way, we will update the "Last updated" date above. Continued use of the platform after changes constitutes acceptance of the revised policy.
-
-</div>
-""", unsafe_allow_html=True)
-
-        # ── SECTION 5: Content Policy ──────────────────────────────────────
-        with st.expander("⊘  Content Policy & Prohibited Uses"):
-            st.markdown("""
-<div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
-
-<div style="font-family:var(--fb);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:-.02em;">
-Content Policy
-</div>
-
-NEXUS runs a strict content safety filter. Certain categories of requests are blocked at multiple levels — before the API call, during the model's processing, and after the response is generated. This is not optional and cannot be bypassed.
-
-<br>
-
-<b style="color:var(--accent);">Absolutely Prohibited</b>
-
-The following categories of content will always be blocked, regardless of framing, context, roleplay setup, fictional wrapping, academic justification, or any other framing technique:
-
-<div style="background:rgba(217,85,85,0.06);border:1px solid rgba(217,85,85,0.2);border-left:2px solid #d95555;border-radius:var(--r-sm);padding:14px 18px;margin:12px 0;font-size:13px;line-height:2.1;">
-⊘ &nbsp; Terrorism, extremist content, attack planning, or recruitment material<br>
-⊘ &nbsp; Instructions for weapons, explosives, or weapons of mass destruction<br>
-⊘ &nbsp; Malware creation, hacking attacks, phishing tools, or cybercrime assistance<br>
-⊘ &nbsp; Any content involving the sexual exploitation of minors<br>
-⊘ &nbsp; Hate speech, genocide planning, or incitement to ethnic or religious violence<br>
-⊘ &nbsp; Detailed methods for suicide or self-harm
-</div>
-
-Attempting to bypass these filters using leet-speak (h@ck, b0mb), Unicode lookalike characters, word-splitting (b.o.m.b), or semantic obfuscation will not work. The safety system operates at the character normalization level, not just at surface pattern matching.
-
-<br>
-
-<b style="color:var(--accent);">What's Allowed</b>
-
-NEXUS is designed for legitimate productivity, research, creative, and educational use. You can ask about cybersecurity concepts from a defensive or educational angle. You can discuss historical violence in an academic context. You can write fiction involving conflict. The filter is designed to catch requests for operational harmful assistance, not to prevent intelligent conversation about difficult topics.
-
-<br>
-
-<b style="color:var(--accent);">Consequences of Policy Violations</b>
-
-Attempted violations are blocked silently at the application level. Repeated attempts within a session may consume rate limit tokens without generating responses. There are no account bans (since there are no accounts), but the filters do not fatigue or weaken with repeated attempts.
-
-</div>
-""", unsafe_allow_html=True)
-
-        # ── SECTION 6: Terms & Conditions ─────────────────────────────────
-        with st.expander("📋  Terms & Conditions — Full Text"):
-            st.markdown("""
-<div style="font-family:var(--fs);font-size:13.5px;color:var(--tx);line-height:1.9;">
-
-<div style="font-family:var(--fb);font-size:16px;font-weight:700;color:var(--accent);margin-bottom:6px;letter-spacing:-.02em;">
-Terms and Conditions of Use
-</div>
-<div style="font-family:var(--fb);font-size:10px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;">
-NEXUS Intelligence Platform · v5.1.0 · Effective: 2026
-</div>
-
-Please read these Terms carefully before using NEXUS. By accessing or using this platform in any capacity, you agree to be bound by the terms stated here. If you do not agree with any part of these terms, you should stop using the platform immediately.
-
-<br>
-
-<b style="color:var(--accent);">1. Acceptance of Terms</b>
-
-By using NEXUS, you confirm that you are at least 13 years of age (or the minimum age of digital consent in your jurisdiction, whichever is higher), that you have the legal capacity to enter into this agreement, and that you will use the platform in compliance with all applicable laws and regulations in your country or region.
-
-<br>
-
-<b style="color:var(--accent);">2. Description of Service</b>
-
-NEXUS is a free-to-use, multi-modal AI intelligence platform providing the following core services: document analysis, YouTube transcript intelligence, neural chat, image vision analysis, voice transcription and response, and text transformation. These services are powered by third-party AI inference APIs and are subject to availability.
-
-<br>
-
-<b style="color:var(--accent);">3. Usage Limits and Fair Use</b>
-
-<div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 18px;margin:10px 0;font-size:13px;line-height:2.3;">
-<b style="color:var(--accent);">Free message limit:</b> &nbsp; 15 messages per browser session<br>
-<b style="color:var(--accent);">Rate limit:</b> &nbsp; Maximum 20 requests per 60-second rolling window<br>
-<b style="color:var(--accent);">Session reset:</b> &nbsp; Start a new session anytime — no cooldown required<br>
-<b style="color:var(--accent);">Context window:</b> &nbsp; 128,000 tokens (shared across session)<br>
-<b style="color:var(--accent);">Document size:</b> &nbsp; Up to 200MB upload, 28,000 characters processed<br>
-<b style="color:var(--accent);">Image formats:</b> &nbsp; PNG, JPG, JPEG, WEBP, GIF<br>
-<b style="color:var(--accent);">Document formats:</b> &nbsp; PDF, DOCX, TXT, CSV
-</div>
-
-These limits exist to ensure fair access for all users and to manage infrastructure costs. Attempting to circumvent limits through automation, scripting, or session manipulation is a violation of these terms.
-
-<br>
-
-<b style="color:var(--accent);">4. Prohibited Uses</b>
-
-You agree not to use NEXUS for any of the following purposes:
-
-(a) Generating, planning, or disseminating content related to terrorism, extremism, or political violence of any kind.
-
-(b) Obtaining instructions for creating weapons, explosives, chemical agents, biological agents, radiological devices, or any other instrument designed to cause harm to persons or property.
-
-(c) Creating, distributing, or assisting in the creation of malware, ransomware, trojans, spyware, keyloggers, phishing pages, credential harvesters, or any other malicious software or cyberweapon.
-
-(d) Generating, soliciting, or distributing any content that sexually exploits or endangers minors in any form, whether realistic or fictional.
-
-(e) Creating content designed to incite hatred, violence, or discrimination against any individual or group on the basis of race, ethnicity, religion, nationality, gender, sexual orientation, disability, or any other protected characteristic.
-
-(f) Generating or distributing content that encourages, instructs, or facilitates suicide or self-harm.
-
-(g) Impersonating any individual, organization, or entity in a manner that is deceptive or harmful.
-
-(h) Using the platform for commercial scraping, bulk data harvesting, or any automated use without prior written permission.
-
-(i) Attempting to reverse-engineer, decompile, or extract the underlying model, API keys, or safety filter logic of this platform.
-
-(j) Using the platform in any way that violates applicable laws or regulations in your jurisdiction.
-
-<br>
-
-<b style="color:var(--accent);">5. Intellectual Property</b>
-
-All original design elements, CSS styling, layout architecture, and code structure of NEXUS are the intellectual property of the developer. The underlying AI models are the property of their respective developers and are licensed separately. Content you upload or generate through NEXUS remains your own — we claim no ownership over your inputs or outputs.
-
-<br>
-
-<b style="color:var(--accent);">6. Disclaimer of Warranties</b>
-
-NEXUS is provided on an "as is" and "as available" basis without any warranty of any kind, express or implied. We do not warrant that the platform will be uninterrupted, error-free, completely accurate, or free of harmful components. AI-generated responses may contain inaccuracies, hallucinations, or outdated information. You should not rely on NEXUS output for medical, legal, financial, or any other professional advice without independent verification.
-
-<br>
-
-<b style="color:var(--accent);">7. Limitation of Liability</b>
-
-To the maximum extent permitted by applicable law, the developer of NEXUS shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of or inability to use the platform. This includes, without limitation, damages for loss of data, loss of profits, or any harm resulting from reliance on AI-generated content.
-
-<br>
-
-<b style="color:var(--accent);">8. Third-Party Services</b>
-
-NEXUS relies on the following third-party services: Groq (AI inference), YouTube Transcript API (transcript retrieval), and Streamlit (application framework). Your use of NEXUS implies transmission of data to these services as described in the Privacy Policy. The developer is not responsible for the practices, availability, or content policies of these third-party services.
-
-<br>
-
-<b style="color:var(--accent);">9. Availability and Modifications</b>
-
-NEXUS is offered as a free service and may be modified, suspended, or discontinued at any time without notice. Features may be added, changed, or removed. Usage limits may be adjusted. The developer is not obligated to maintain any specific feature set or uptime guarantee.
-
-<br>
-
-<b style="color:var(--accent);">10. Governing Law</b>
-
-These terms shall be governed by and construed in accordance with the laws of India. Any disputes arising from the use of this platform shall be subject to the exclusive jurisdiction of the courts of India.
-
-<br>
-
-<b style="color:var(--accent);">11. Changes to Terms</b>
-
-These terms may be updated at any time. The most current version will always be visible on this page. Continued use of NEXUS after any modification constitutes your acceptance of the revised terms. If you do not agree to the updated terms, your only recourse is to discontinue use of the platform.
-
-<br>
-
-<b style="color:var(--accent);">12. Contact</b>
-
-If you have questions about these terms, encounter a bug, want to report abuse, or just want to reach out about the platform, you can contact the developer directly. NEXUS is a solo-built project and feedback is taken seriously.
-
-</div>
-""", unsafe_allow_html=True)
-
-        # ── Bottom legal strip ─────────────────────────────────────────────
-        st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
-        st.markdown("""
-        <div style="border-top:1px solid var(--border);padding:24px 0 8px;text-align:center;">
-            <div style="font-family:var(--fb);font-size:11px;font-weight:700;
-                        letter-spacing:.1em;text-transform:uppercase;
-                        color:var(--accent);margin-bottom:10px;">
-                NEXUS Intelligence Platform
-            </div>
-            <div style="font-family:var(--fs);font-size:11px;color:var(--tx-3);line-height:2;">
-                Powered by Nexus&nbsp;·&nbsp; v5.1.0 &nbsp;·&nbsp; © 2026<br>
-                All rights reserved &nbsp;·&nbsp; Made in India
-            </div>
-            <div style="margin-top:16px;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;">
-                <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Privacy Policy</span>
-                <span style="color:var(--border);">·</span>
-                <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Terms & Conditions</span>
-                <span style="color:var(--border);">·</span>
-                <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Content Policy</span>
-                <span style="color:var(--border);">·</span>
-                <span style="font-family:var(--fb);font-size:9.5px;color:var(--tx-3);letter-spacing:.08em;text-transform:uppercase;">Open Source Licenses</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-
-# ═══════════════════════════════════════════
-#  ROUTER
-# ═══════════════════════════════════════════
-if False:  # Landing page disabled — direct to app
-    render_landing_page()
-else:
-    api_key, temperature, model_tier = render_sidebar()
-
-    # Check if limit hit
-    _limit_hit = st.session_state.query_count >= FREE_MSG_LIMIT
-    if _limit_hit:
-        st.session_state.locked = True
-
-    if st.session_state.get("locked", False):
-        render_limit_popup()
-    else:
-        # Show free messages counter in top right
-        _remaining = max(0, FREE_MSG_LIMIT - st.session_state.query_count)
-        _color = "#c8a778" if _remaining > 3 else "#d95555"
-        st.markdown(
-            f'<div style="position:fixed;top:14px;right:16px;z-index:9999;'
-            f'background:var(--s2);border:1px solid var(--border);'
-            f'border-radius:20px;padding:5px 12px;'
-            f'font-family:var(--fb);font-size:11px;font-weight:700;color:{_color};">'
-            f'{_remaining} free messages left</div>',
-            unsafe_allow_html=True
-        )
-        render_dashboard(api_key, temperature, model_tier)
+          
+Preview truncated for large file
